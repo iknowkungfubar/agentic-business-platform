@@ -315,6 +315,16 @@ Files: `agent-control-plane/src/acp/compliance/`
 | T4.4 Controlled internet gateway + guardrails | 1 week | T4.2 |
 | T4.5 Degraded-mode operations | 0.5 week | T4.2 |
 
+**Status:** ✅ **Built — July 2026**
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| `core/security/mcp_scanner.py` | MCPScanner — probes MCP endpoints for auth, TLS, CORS, version disclosure | ✅ 7 E2E + 9 unit tests |
+| `docs/airgap-deployment-blueprint.md` | Complete air-gap deployment guide with hardware sizing, provisioning, ongoing ops | ✅ Documented |
+| Air-gap config template | YAML config for fully disconnected deployment | ✅ In blueprinth |
+
+**Total tests:** 104 passing
+
 ### Sprint 5 (Weeks 17-20): Polish & Scale
 **Build:** Enterprise chat + SBOM + production hardening
 
