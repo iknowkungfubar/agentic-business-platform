@@ -259,16 +259,28 @@ Files: `agent-control-plane/src/acp/compliance/`
 | T1.3 WORM audit log with cryptographic signing | 1 week | None |
 | T1.4 Compliance evidence generator (CMMC + EU AI Act) | 1 week | T1.2, T1.3 |
 | T1.5 Compliance report templates | 0.5 week | T1.4 |
+### Sprint 2 (Weeks 5-8): Data Pipeline + Model Router
 
-### Sprint 2 (Weeks 5-8): Data Pipeline
 **Build:** Document ingestion + model router
 
 | Task | Estimate | Dependencies |
 |------|----------|-------------|
-| T2.1 Document ingestion pipeline (PDF, email, Slack, wiki) | 2 weeks | None |
+| T2.1 Document ingestion pipeline (PDF, text, markdown, code) | 2 weeks | None |
 | T2.2 Cleaning + chunking + embedding pipeline | 1 week | T2.1 |
 | T2.3 Multi-model router (intent → complexity → model) | 2 weeks | None |
 | T2.4 Small + large inference integration | 1 week | T2.3 |
+
+**Status:** ✅ **Built — June 2026**
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| `core/pipeline/ingest.py` | DocumentIngester (txt, md, pdf, code, json, csv, html, yaml) | ✅ 10 unit tests |
+| `core/pipeline/chunk.py` | TextChunker (paragraph/sentence/fixed with overlap) | ✅ 11 unit tests |
+| `core/router/intent.py` | IntentClassifier (9 intent types, keyword-based) | ✅ 11 unit tests |
+| `core/router/selector.py` | ModelSelector (4 tiers T1-T4, complexity upgrades) | ✅ 8 unit tests |
+| E2E integration | Full pipeline: ingest → chunk → classify → route | ✅ 6 E2E tests |
+
+**Total tests:** 46 passing
 
 ### Sprint 3 (Weeks 9-12): Governance Core
 **Build:** Policy-as-code + agent evaluation
