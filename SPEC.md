@@ -287,10 +287,22 @@ Files: `agent-control-plane/src/acp/compliance/`
 
 | Task | Estimate | Dependencies |
 |------|----------|-------------|
-| T3.1 OPA/Rego policy engine deployment | 1 week | T1.2 |
+| T3.1 Policy engine (rule evaluation for agent actions) | 1 week | None |
 | T3.2 Policy templates (CMMC, GDPR, EU AI Act) | 1 week | T3.1 |
 | T3.3 Agent eval suite with scorecards | 2 weeks | None |
 | T3.4 Red-team scheduler + results tracking | 1 week | T3.3 |
+
+**Status:** ✅ **Built — July 2026**
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| `core/governance/policy.py` | PolicyEngine with priority-based rule evaluation, DENY/ALLOW/AUDIT | ✅ 9 unit tests |
+| `core/governance/templates.py` | PolicyTemplates: 6 CMMC, 4 GDPR, 4 EU AI Act rules | ✅ Verified in E2E |
+| `core/governance/eval.py` | AgentEvalSuite with weighted scoring, thresholds, history | ✅ 10 unit tests |
+| `core/governance/redteam.py` | RedTeamScheduler with scheduling, completion, stats | ✅ 10 unit tests |
+| E2E integration | Full governance pipeline: policy → eval → red-team | ✅ 5 E2E tests |
+
+**Total tests:** 82 passing (46 from S1+S2 + 36 new)
 
 ### Sprint 4 (Weeks 13-16): Security & Edge
 **Build:** MCP scanner + air-gap + internet gateway
