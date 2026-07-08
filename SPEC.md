@@ -335,6 +335,18 @@ Files: `agent-control-plane/src/acp/compliance/`
 | T5.3 Full degraded-mode and failover | 1 week | T4.5 |
 | T5.4 Production hardening + documentation | 1 week | All |
 
+**Status:** ✅ **Built — July 2026**
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| `core/hardening/sbom.py` | SBOMGenerator — SPDX 2.3 compliant, parses pyproject.toml + uv.lock, vulnerability checking | ✅ 6 E2E tests |
+| `.github/workflows/ci.yml` | Full CI pipeline: lint (ruff), test (pytest, 3.12+3.13, coverage≥70%), security, build | ✅ Configured |
+| `SECURITY.md` | Security policy, vulnerability reporting, supply chain practices | ✅ Documented |
+| `docs/enterprise-chat-architecture.md` | Full chat frontend design: React component tree, API contracts, Zustand state, integration points | ✅ Architecture doc |
+| `core/hardening/__init__.py` | Package exports | ✅ |
+
+**Total tests:** 110 passing
+
 ---
 
 ## Compliance Mapping
