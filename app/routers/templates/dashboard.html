@@ -58,7 +58,9 @@
           <div class="space-y-2">
             <button onclick="checkHealth()" class="w-full text-left px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm">🩺 Check All Agents</button>
             <button onclick="loadMetrics()" class="w-full text-left px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm">📊 View Metrics</button>
+            <button onclick="generateApiKey()" class="w-full text-left px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm">🔑 Generate API Key</button>
           </div>
+          <div id="api-key-result" class="mt-2 text-xs text-emerald-400 hidden"></div>
         </div>
 
         <div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
@@ -150,6 +152,20 @@
         await loadAgents();
       } catch (e) {
         log(`Health check error: ${e.message}`);
+      }
+    }
+
+    async function generateApiKey() {
+      try {
+        const r = await fetch(`${API}/auth/api-key?name=dashboard-${Date.now()}`, { method: 'POST' });
+        if (!r.ok) throw new Error(`${r.status}`);
+        const data = await r.json();
+        const el = document.getElementById('api-key-result');
+        el.textContent = `🔑 API Key: ${data.api_key} (prefix: ${data.key_prefix})`;
+        el.className = 'mt-2 text-xs text-emerald-400';
+        log('API key generated');
+      } catch (e) {
+        log(`API key error: ${e.message}`);
       }
     }
 

@@ -8,11 +8,12 @@ from app.database import (
     reset_engine,
 )
 from app.models import (
-    AgentRecord,
     APIKey,
+    AgentRecord,
     AuditEvent,
     Conversation,
     Document,
+    MCPScanResult,
     Message,
     Organization,
     User,

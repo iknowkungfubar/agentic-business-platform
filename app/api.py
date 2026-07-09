@@ -19,8 +19,10 @@ from app.db import init_db
 from app.middleware import RateLimiterMiddleware
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
+from app.routers.compliance import router as compliance_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.eval import router as eval_router
 from app.routers.health import router as health_router
@@ -144,6 +146,8 @@ app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(agents_router, prefix="/api/v1/agents")
+app.include_router(audit_router, prefix="/api/v1/audit")
+app.include_router(compliance_router, prefix="/api/v1/compliance")
 app.include_router(dashboard_router, prefix="")
 app.include_router(mcp_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
