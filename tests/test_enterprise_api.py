@@ -41,34 +41,7 @@ class TestAuth:
 class TestAPI:
     """API endpoint tests — uses shared test_db + api_client fixtures."""
 
-<<<<<<< HEAD
-    @pytest.fixture(autouse=True)
-    def _db_setup(self, tmp_path):
-
-        os.environ["DISABLE_RATE_LIMIT"] = "true"
-        old_url = os.environ.get("DATABASE_URL", "")
-        db_path = tmp_path / "test.db"
-        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-        import app.db
-
-        app.db.reset_engine()
-        app.db.init_db()
-        yield
-        if old_url:
-            os.environ["DATABASE_URL"] = old_url
-        else:
-            os.environ.pop("DATABASE_URL", None)
-
-    @pytest.fixture
-    def client(self, _db_setup):
-        from fastapi.testclient import TestClient
-
-        return TestClient(app)
-
-    def test_health_unauthenticated(self, client):
-=======
     def test_health_unauthenticated(self, api_client):
->>>>>>> 1e7ffaf (arch: deepen 6 architecture candidates)
         """Health endpoint should be public."""
         r = api_client.get("/health")
         assert r.status_code == 200
