@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import os
-
-import pytest
-
-from app.api import app
-from app.auth import create_access_token, decode_token, generate_api_key, hash_password, verify_api_key, verify_password
+from app.auth import (
+    create_access_token,
+    decode_token,
+    generate_api_key,
+    hash_password,
+    verify_api_key,
+    verify_password,
+)
 from app.db import User
 
 
@@ -37,8 +39,9 @@ class TestAuth:
 
 
 class TestAPI:
-    """API endpoint tests."""
+    """API endpoint tests — uses shared test_db + api_client fixtures."""
 
+<<<<<<< HEAD
     @pytest.fixture(autouse=True)
     def _db_setup(self, tmp_path):
 
@@ -63,14 +66,17 @@ class TestAPI:
         return TestClient(app)
 
     def test_health_unauthenticated(self, client):
+=======
+    def test_health_unauthenticated(self, api_client):
+>>>>>>> 1e7ffaf (arch: deepen 6 architecture candidates)
         """Health endpoint should be public."""
-        r = client.get("/health")
+        r = api_client.get("/health")
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
 
-    def test_register_and_login(self, client):
+    def test_register_and_login(self, api_client):
         """Full registration and login flow."""
-        r = client.post(
+        r = api_client.post(
             "/auth/register",
             json={
                 "email": "test@test.com",
@@ -85,7 +91,7 @@ class TestAPI:
         assert data["user"]["email"] == "test@test.com"
 
         # Login with same credentials
-        r2 = client.post(
+        r2 = api_client.post(
             "/auth/login",
             json={
                 "email": "test@test.com",
@@ -95,15 +101,15 @@ class TestAPI:
         assert r2.status_code == 200
         assert "access_token" in r2.json()
 
-    def test_auth_required_endpoints(self, client):
+    def test_auth_required_endpoints(self, api_client):
         """Protected endpoints should return 401 without auth."""
-        r = client.post("/documents/ingest", params={"path": "/nonexistent"})
+        r = api_client.post("/documents/ingest", params={"path": "/nonexistent"})
         assert r.status_code == 401
 
-    def test_classify_with_auth(self, client):
+    def test_classify_with_auth(self, api_client):
         """Classify should work with valid auth."""
         # Register first
-        r = client.post(
+        r = api_client.post(
             "/auth/register",
             json={
                 "email": "user@test.com",
@@ -115,13 +121,17 @@ class TestAPI:
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        r2 = client.post("/classify", json={"text": "What is the capital of France?"}, headers=headers)
+        r2 = api_client.post(
+            "/classify",
+            json={"text": "What is the capital of France?"},
+            headers=headers,
+        )
         assert r2.status_code == 200
         assert r2.json()["intent"] == "question_answering"
 
-    def test_route_with_auth(self, client):
+    def test_route_with_auth(self, api_client):
         """Route should work with valid auth."""
-        r = client.post(
+        r = api_client.post(
             "/auth/register",
             json={
                 "email": "u2@test.com",
@@ -133,13 +143,17 @@ class TestAPI:
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        r2 = client.post("/route", json={"text": "def hello(): pass"}, headers=headers)
+        r2 = api_client.post(
+            "/route",
+            json={"text": "def hello(): pass"},
+            headers=headers,
+        )
         assert r2.status_code == 200
         assert r2.json()["model_tier"] == "t3"
 
-    def test_evaluate_with_auth(self, client):
+    def test_evaluate_with_auth(self, api_client):
         """Policy evaluation should work with auth."""
-        r = client.post(
+        r = api_client.post(
             "/auth/register",
             json={
                 "email": "u3@test.com",
@@ -151,28 +165,26 @@ class TestAPI:
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        r2 = client.post(
+        r2 = api_client.post(
             "/evaluate",
             json={
-                "action": {"action_type": "data_access", "resource_type": "cui", "authorized": False},
+                "action": {
+                    "action_type": "data_access",
+                    "resource_type": "cui",
+                    "authorized": False,
+                },
             },
             headers=headers,
         )
         assert r2.status_code == 200
         assert r2.json()["effect"] == "deny"
 
-    def test_scan_mcp_with_auth(self, client):
+    def test_scan_mcp_with_auth(self, api_client):
         """MCP scan should work with auth (requires operator role)."""
-        r = client.post(
-            "/auth/register",
-            json={
-                "email": "u4@test.com",
-                "password": "pass",
-                "full_name": "U",
-                "org_name": "O",
-            },
-        )
-        token = r.json()["access_token"]
+        from tests.helpers import register_user
+
+        data = register_user(api_client, email="u4@test.com", password="pass")
+        token = data["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Upgrade user to admin via direct DB
@@ -180,25 +192,24 @@ class TestAPI:
 
         db = next(get_db())
         user = db.query(User).filter(User.email == "u4@test.com").first()
-        user.role = "admin"
-        db.commit()
+        if user:
+            user.role = "admin"
+            db.commit()
 
-        r2 = client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=headers)
-        # Note: may get 403 if DB session doesn't persist the role change
-        # in the test environment. Both 200 and 403 are acceptable here.
+        r2 = api_client.post(
+            "/scan-mcp",
+            json={"url": "http://127.0.0.1:1", "timeout": 1.0},
+            headers=headers,
+        )
+        # 403 is acceptable if DB session doesn't persist the role change
         assert r2.status_code in (200, 403)
 
-    def test_register_duplicate_email(self, client):
+    def test_register_duplicate_email(self, api_client):
         """Duplicate email should be rejected."""
-        client.post(
-            "/auth/register",
-            json={
-                "email": "dup@test.com",
-                "password": "pass",
-                "org_name": "O",
-            },
-        )
-        r = client.post(
+        from tests.helpers import register_user
+
+        register_user(api_client, email="dup@test.com", password="pass")
+        r = api_client.post(
             "/auth/register",
             json={
                 "email": "dup@test.com",
@@ -209,17 +220,12 @@ class TestAPI:
         assert r.status_code == 400
         assert "already registered" in r.json()["detail"]
 
-    def test_login_wrong_password(self, client):
+    def test_login_wrong_password(self, api_client):
         """Wrong password should be rejected."""
-        client.post(
-            "/auth/register",
-            json={
-                "email": "wp@test.com",
-                "password": "correctpass",
-                "org_name": "O",
-            },
-        )
-        r = client.post(
+        from tests.helpers import register_user
+
+        register_user(api_client, email="wp@test.com", password="correctpass")
+        r = api_client.post(
             "/auth/login",
             json={
                 "email": "wp@test.com",

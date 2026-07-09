@@ -45,139 +45,76 @@ class TestCLIIntegration:
 
 
 class TestAPIIntegration:
-    """Tests for the API server endpoints."""
+    """Tests for the API server endpoints — uses shared test_db + api_client fixtures."""
 
-    @pytest.fixture(autouse=True)
-    def _setup(self, tmp_path):
-        """Use a temp file DB so all connections share the same data."""
-        db_path = tmp_path / "test.db"
-        import os
+    def test_api_health(self, api_client):
+        response = api_client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
 
-        os.environ["DISABLE_RATE_LIMIT"] = "true"
-        old_url = os.environ.get("DATABASE_URL", "")
-        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-        import app.db
+    def test_api_classify(self, api_client):
+        from tests.helpers import auth_headers
 
-        app.db.reset_engine()
-        app.db.init_db()
-        yield
-        # Restore
-        if old_url:
-            os.environ["DATABASE_URL"] = old_url
-        else:
-            os.environ.pop("DATABASE_URL", None)
-        if db_path.exists():
-            db_path.unlink()
+        headers = auth_headers(api_client)
+        response = api_client.post("/classify", json={"text": "Summarize this report"}, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["intent"] == "summarization"
 
-    @pytest.fixture
-    def admin_headers(self, _setup):
-        from fastapi.testclient import TestClient
+    def test_api_route(self, api_client):
+        from tests.helpers import auth_headers
 
-        from app.api import app
+        headers = auth_headers(api_client)
+        response = api_client.post("/route", json={"text": "def foo(): pass"}, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["model_tier"] == "t3"
 
-        client = TestClient(app)
-        r = client.post(
-            "/auth/register",
-            json={
-                "email": "admin@test.com",
-                "password": "adminpass",
-                "full_name": "Admin",
-                "org_name": "AdminOrg",
-            },
-        )
+    def test_api_evaluate(self, api_client):
+        from tests.helpers import auth_headers
+
+        headers = auth_headers(api_client)
+        action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
+        response = api_client.post("/evaluate", json={"action": action}, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["effect"] == "deny"
+
+    def test_api_scan_mcp(self, api_client):
+        """Scan MCP endpoint requires admin role."""
         from app.db import User, get_db
+        from tests.helpers import register_user
 
+        data = register_user(api_client, email="admin@test.com", password="adminpass")
+        token = data["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Upgrade to admin via direct DB
         db = next(get_db())
         user = db.query(User).filter(User.email == "admin@test.com").first()
         if user:
             user.role = "admin"
             db.commit()
 
-        token = r.json()["access_token"]
-        return {"Authorization": f"Bearer {token}"}
-
-    @pytest.fixture
-    def viewer_headers(self, _setup):
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        r = client.post(
-            "/auth/register",
-            json={
-                "email": "viewer@test.com",
-                "password": "viewerpass",
-                "full_name": "Viewer",
-                "org_name": "ViewerOrg",
-            },
-        )
-        token = r.json()["access_token"]
-        return {"Authorization": f"Bearer {token}"}
-
-    def test_api_health(self):
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        response = client.get("/health")
-        assert response.status_code == 200
-        assert response.json()["status"] == "ok"
-
-    def test_api_classify(self, viewer_headers):
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        response = client.post("/classify", json={"text": "Summarize this report"}, headers=viewer_headers)
-        assert response.status_code == 200
-        assert response.json()["intent"] == "summarization"
-
-    def test_api_route(self, viewer_headers):
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        response = client.post("/route", json={"text": "def foo(): pass"}, headers=viewer_headers)
-        assert response.status_code == 200
-        assert response.json()["model_tier"] == "t3"
-
-    def test_api_evaluate(self, viewer_headers):
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
-        response = client.post("/evaluate", json={"action": action}, headers=viewer_headers)
-        assert response.status_code == 200
-        assert response.json()["effect"] == "deny"
-
-    def test_api_scan_mcp(self, admin_headers):
-        """Scan MCP endpoint requires admin role. Skipp if role not available."""
-        from fastapi.testclient import TestClient
-
-        from app.api import app
-
-        client = TestClient(app)
-        response = client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=admin_headers)
-        # Admin role may not persist due to DB session isolation with TestClient
+        response = api_client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=headers)
         if response.status_code == 403:
             pytest.skip("Admin role not available in this test context")
         assert response.status_code == 200
         assert response.json()["reachable"] is False
 
-    def test_api_sbom(self, admin_headers):
+    def test_api_sbom(self, api_client):
         """SBOM endpoint requires admin role."""
-        from fastapi.testclient import TestClient
+        from app.db import User, get_db
+        from tests.helpers import register_user
 
-        from app.api import app
+        data = register_user(api_client, email="admin2@test.com", password="adminpass")
+        token = data["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
 
-        client = TestClient(app)
-        response = client.post("/sbom", json={"project_root": "."}, headers=admin_headers)
+        db = next(get_db())
+        user = db.query(User).filter(User.email == "admin2@test.com").first()
+        if user:
+            user.role = "admin"
+            db.commit()
+
+        response = api_client.post("/sbom", json={"project_root": "."}, headers=headers)
         if response.status_code == 403:
             pytest.skip("Admin role not available in this test context")
         assert response.status_code == 200
