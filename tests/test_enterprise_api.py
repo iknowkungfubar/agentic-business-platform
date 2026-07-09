@@ -48,6 +48,7 @@ class TestAPI:
         db_path = tmp_path / "test.db"
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
         import app.db
+
         app.db.reset_engine()
         app.db.init_db()
         yield
