@@ -17,6 +17,7 @@ from sqlalchemy import text
 from app.db import init_db
 from app.middleware import RateLimiterMiddleware
 from app.routers.admin import router as admin_router
+from app.routers.agents import router as agents_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.eval import router as eval_router
@@ -120,6 +121,7 @@ app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(agents_router, prefix="/api/v1/agents")
 app.include_router(mcp_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
 app.include_router(sbom_router, prefix="/api/v1")
