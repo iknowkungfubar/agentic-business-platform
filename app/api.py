@@ -32,6 +32,7 @@ from app.routers.ingest import router as ingest_router
 from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
+from app.routers.tenant import router as tenant_router
 
 from app.middleware import TokenBucketRateLimiter
 from app.telemetry import (
@@ -167,3 +168,4 @@ app.include_router(dashboard_router, prefix="")
 app.include_router(mcp_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
 app.include_router(sbom_router, prefix="/api/v1")
+app.include_router(tenant_router, prefix="")
