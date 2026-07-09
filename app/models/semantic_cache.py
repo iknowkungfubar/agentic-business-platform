@@ -3,6 +3,7 @@
 Enables retrieval of cached responses when a similar query is detected
 (cosine similarity > 0.95), reducing LLM inference costs and latency.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

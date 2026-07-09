@@ -18,8 +18,10 @@ from sqlalchemy import text
 from app.database import init_db
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router
+from app.routers.api_keys import router as api_keys_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
+from app.routers.billing import router as billing_router
 from app.routers.chat import router as chat_router
 from app.routers.compliance import router as compliance_router
 from app.routers.costs import router as costs_router
@@ -152,10 +154,12 @@ register_error_handlers(app)
 app.include_router(health_router, prefix="")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(billing_router, prefix="/api/v1/billing")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(agents_router, prefix="/api/v1/agents")
+app.include_router(api_keys_router, prefix="/api/v1/api-keys")
 app.include_router(audit_router, prefix="/api/v1/audit")
 app.include_router(compliance_router, prefix="/api/v1/compliance")
 app.include_router(costs_router, prefix="/api/v1/costs")

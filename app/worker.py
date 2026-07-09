@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from redis.asyncio import ConnectionPool, Redis
@@ -244,6 +244,81 @@ async def dispatch_audit_webhook(ctx: dict, event_data: dict, webhook_url: str, 
         return {"status": 0, "sent": False, "error": str(exc)}
 
 
+# ── Daily Usage Metering ──────────────────────────────────────
+
+
+async def daily_usage_metering(ctx: dict) -> dict[str, Any]:
+    """Scheduled task: aggregate daily token usage by organization.
+
+    Runs daily via ARQ cron. Aggregates Message.tokens_used for the
+    previous 24 hours, grouped by organization_id. Pushes to configured
+    billing provider if URL is set.
+    """
+    import httpx  # noqa: PLC0415
+    from sqlalchemy import create_engine, text  # noqa: PLC0415
+
+    logger = logging.getLogger("turin-platform.metering")
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
+    billing_url = os.getenv("BILLING_PROVIDER_URL", "")
+    billing_api_key = os.getenv("BILLING_PROVIDER_API_KEY", "")
+    db_url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
+    engine = create_engine(db_url)
+
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text("""
+                    SELECT c.organization_id, SUM(m.tokens_used) as total_tokens,
+                           COUNT(m.id) as total_calls
+                    FROM messages m
+                    JOIN conversations c ON m.conversation_id = c.id
+                    WHERE m.created_at >= :cutoff
+                    GROUP BY c.organization_id
+                """),
+                {"cutoff": cutoff},
+            ).fetchall()
+
+        results = []
+        for row in rows:
+            org_id = row[0]
+            tokens = int(row[1] or 0)
+            calls = int(row[2] or 0)
+
+            usage = {
+                "organization_id": org_id,
+                "period_start": cutoff.isoformat(),
+                "period_end": datetime.now(UTC).isoformat(),
+                "total_tokens": tokens,
+                "total_calls": calls,
+                "estimated_cost_usd": round(tokens / 1000 * 0.002, 4),
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+            results.append(usage)
+
+            if billing_url and tokens > 0:
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.post(
+                            f"{billing_url}/v1/usage",
+                            json=usage,
+                            headers={
+                                "Authorization": f"Bearer {billing_api_key}",
+                                "Content-Type": "application/json",
+                            },
+                        )
+                        logger.info(
+                            "billing_push_complete",
+                            extra={"org_id": org_id, "status": resp.status_code, "tokens": tokens},
+                        )
+                except Exception as exc:
+                    logger.error("billing_push_failed", extra={"org_id": org_id, "error": str(exc)})
+
+        logger.info("metering_complete", extra={"organizations": len(results), "period_hours": 24})
+        return {"organizations": len(results), "results": results}
+    finally:
+        engine.dispose()
+
+
 # ── ARQ Worker Configuration ─────────────────────────────────
 
 
@@ -262,7 +337,7 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions: list = [ingest_document, dispatch_audit_webhook]
+    functions: list = [ingest_document, dispatch_audit_webhook, daily_usage_metering]
     on_startup: Any = startup
     on_shutdown: Any = shutdown
     redis_url: str = worker_settings.redis_url

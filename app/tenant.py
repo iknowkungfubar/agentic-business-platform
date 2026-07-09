@@ -7,6 +7,7 @@ into the PostgreSQL session via SET LOCAL. This enables Row-Level Security
 For zero-trust enforcement: even if a route handler forgets to filter by
 organization_id, RLS will silently apply the correct filter.
 """
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -77,8 +78,6 @@ class TenantSessionFilter:
         """
         if self._tenant_id is not None:
             try:
-                db_session.execute(
-                    f"SET LOCAL app.current_tenant_id = '{int(self._tenant_id)}'"
-                )
+                db_session.execute(f"SET LOCAL app.current_tenant_id = '{int(self._tenant_id)}'")
             except Exception:
                 pass  # Non-PostgreSQL dialects ignore this silently

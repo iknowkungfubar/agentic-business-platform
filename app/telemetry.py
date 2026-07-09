@@ -7,6 +7,7 @@ Enterprise observability stack:
 - OpenTelemetry distributed tracing (FastAPI, HTTPX, SQLAlchemy)
 - Health-aware metrics endpoint
 """
+
 from __future__ import annotations
 
 import json
@@ -37,10 +38,12 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
     from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION  # noqa: PLC0415
     from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
 
-    resource = Resource.create({
-        SERVICE_NAME: service_name,
-        SERVICE_VERSION: "0.1.0",
-    })
+    resource = Resource.create(
+        {
+            SERVICE_NAME: service_name,
+            SERVICE_VERSION: "0.1.0",
+        }
+    )
     provider = TracerProvider(resource=resource)
 
     # Configure exporter
@@ -101,9 +104,7 @@ def get_trace_parent_header() -> dict[str, str] | None:
     ctx = span.get_span_context()
     if not ctx or not ctx.trace_id or ctx.trace_id == 0:
         return None
-    return {
-        "traceparent": f"00-{ctx.trace_id:032x}-{ctx.span_id:016x}-01"
-    }
+    return {"traceparent": f"00-{ctx.trace_id:032x}-{ctx.span_id:016x}-01"}
 
 
 # ── Structured Logging ──────────────────────────────────────────
@@ -200,6 +201,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 def register_metrics_endpoint(app: FastAPI) -> None:
     """Register the /metrics endpoint on the app."""
+
     @app.get("/metrics", include_in_schema=False)
     async def metrics() -> Response:  # noqa: PLC0415
         return Response(
