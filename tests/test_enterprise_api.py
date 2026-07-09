@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import os
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from app.api import app
-from app.auth import hash_password, verify_password, create_access_token, decode_token, generate_api_key, verify_api_key
-from app.db import User, init_db
+from app.auth import create_access_token, decode_token, generate_api_key, hash_password, verify_api_key, verify_password
+from app.db import User
 
 
 class TestAuth:
@@ -46,14 +42,13 @@ class TestAPI:
     @pytest.fixture(autouse=True)
     def _db_setup(self, tmp_path):
         import os
-        import importlib
 
+        os.environ["DISABLE_RATE_LIMIT"] = "true"
         old_url = os.environ.get("DATABASE_URL", "")
         db_path = tmp_path / "test.db"
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
         import app.db
-
-        importlib.reload(app.db)
+        app.db.reset_engine()
         app.db.init_db()
         yield
         if old_url:
@@ -181,7 +176,7 @@ class TestAPI:
         headers = {"Authorization": f"Bearer {token}"}
 
         # Upgrade user to admin via direct DB
-        from app.db import User, get_db
+        from app.db import get_db
 
         db = next(get_db())
         user = db.query(User).filter(User.email == "u4@test.com").first()

@@ -106,10 +106,7 @@ class AgentEvalSuite:
 
     def get_history(self, agent_id: str | None = None, limit: int = 50) -> list[Scorecard]:
         """Get evaluation history, optionally filtered by agent."""
-        if agent_id:
-            filtered = [s for s in self._history if s.agent_id == agent_id]
-        else:
-            filtered = list(self._history)
+        filtered = [s for s in self._history if s.agent_id == agent_id] if agent_id else list(self._history)
         return filtered[-limit:]
 
     def get_stats(self, agent_id: str | None = None) -> dict[str, Any]:

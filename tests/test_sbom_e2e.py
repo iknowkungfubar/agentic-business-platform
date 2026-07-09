@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 
-
-from core.hardening.sbom import SBOMGenerator, Dependency
+from core.hardening.sbom import Dependency, SBOMGenerator
 
 
 class TestSBOMPipelineE2E:

@@ -7,10 +7,10 @@ import json
 import pytest
 
 from core.security.mcp_scanner import (
+    Finding,
     FindingSeverity,
     MCPScanner,
     ScanTarget,
-    Finding,
 )
 
 

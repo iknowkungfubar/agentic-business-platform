@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import pytest
 
-from core.governance.policy import PolicyEngine, PolicyRule, RuleEffect
-from core.governance.templates import PolicyTemplates
 from core.governance.eval import AgentEvalSuite, EvalCriterion, Scorecard
+from core.governance.policy import PolicyEngine, PolicyRule, RuleEffect
 from core.governance.redteam import RedTeamScheduler
+from core.governance.templates import PolicyTemplates
 
 
 class TestGovernanceE2E:

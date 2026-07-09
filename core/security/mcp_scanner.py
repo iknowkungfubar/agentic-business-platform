@@ -17,13 +17,15 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
-from pathlib import Path
-from typing import Any
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-class FindingSeverity(str, Enum):
+
+class FindingSeverity(StrEnum):
     """Severity of a security finding."""
 
     CRITICAL = "critical"

@@ -10,8 +10,10 @@ Four model tiers:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from core.router.intent import IntentResult
+if TYPE_CHECKING:
+    from core.router.intent import IntentResult
 
 # Rough estimate: 1 token ≈ 4 characters in English text
 _CHARS_PER_TOKEN = 4

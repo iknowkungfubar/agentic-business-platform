@@ -13,8 +13,28 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, crea
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
-_engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-_SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+_engine: Any = None
+_SessionLocal: Any = None
+
+
+def _get_engine():
+    """Get or create the SQLAlchemy engine lazily."""
+    global _engine, _SessionLocal
+    if _engine is None:
+        url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
+        _engine = create_engine(url, pool_pre_ping=True)
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+    return _engine
+
+
+def reset_engine():
+    """Reset the engine singleton (for testing with different DATABASE_URL).
+
+    Call this after changing DATABASE_URL, before init_db() or get_db().
+    """
+    global _engine, _SessionLocal
+    _engine = None
+    _SessionLocal = None
 
 
 class Base(DeclarativeBase):
@@ -152,8 +172,8 @@ def get_db():
 
 def init_db():
     """Create all tables."""
-    Base.metadata.create_all(bind=_engine)
+    Base.metadata.create_all(bind=_get_engine())
 
 
 def get_engine():
-    return _engine
+    return _get_engine()

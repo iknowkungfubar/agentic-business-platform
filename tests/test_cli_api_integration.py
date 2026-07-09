@@ -53,18 +53,13 @@ class TestAPIIntegration:
         db_path = tmp_path / "test.db"
         import os
 
+        os.environ["DISABLE_RATE_LIMIT"] = "true"
         old_url = os.environ.get("DATABASE_URL", "")
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-        # Force re-import of db and api modules with new URL
         import app.db
-        import importlib
 
-        importlib.reload(app.db)
+        app.db.reset_engine()
         app.db.init_db()
-        # Also reload app.api so it picks up the fresh get_db from app.db
-        import app.api
-
-        importlib.reload(app.api)
         yield
         # Restore
         if old_url:
@@ -76,8 +71,9 @@ class TestAPIIntegration:
 
     @pytest.fixture
     def admin_headers(self, _setup):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         r = client.post(
@@ -102,8 +98,9 @@ class TestAPIIntegration:
 
     @pytest.fixture
     def viewer_headers(self, _setup):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         r = client.post(
@@ -119,8 +116,9 @@ class TestAPIIntegration:
         return {"Authorization": f"Bearer {token}"}
 
     def test_api_health(self):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         response = client.get("/health")
@@ -128,8 +126,9 @@ class TestAPIIntegration:
         assert response.json()["status"] == "ok"
 
     def test_api_classify(self, viewer_headers):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         response = client.post("/classify", json={"text": "Summarize this report"}, headers=viewer_headers)
@@ -137,8 +136,9 @@ class TestAPIIntegration:
         assert response.json()["intent"] == "summarization"
 
     def test_api_route(self, viewer_headers):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         response = client.post("/route", json={"text": "def foo(): pass"}, headers=viewer_headers)
@@ -146,8 +146,9 @@ class TestAPIIntegration:
         assert response.json()["model_tier"] == "t3"
 
     def test_api_evaluate(self, viewer_headers):
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
@@ -157,8 +158,9 @@ class TestAPIIntegration:
 
     def test_api_scan_mcp(self, admin_headers):
         """Scan MCP endpoint requires admin role. Skipp if role not available."""
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         response = client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=admin_headers)
@@ -170,8 +172,9 @@ class TestAPIIntegration:
 
     def test_api_sbom(self, admin_headers):
         """SBOM endpoint requires admin role."""
-        from app.api import app
         from fastapi.testclient import TestClient
+
+        from app.api import app
 
         client = TestClient(app)
         response = client.post("/sbom", json={"project_root": "."}, headers=admin_headers)

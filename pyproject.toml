@@ -39,3 +39,10 @@ line-length = 120
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["D", "S101", "ANN", "COM", "INP", "TD", "EM", "ERA", "PLR2004"]
+
+# Pre-existing suppressions — fix incrementally
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLC0415", "TRY003", "PT011", "RUF012", "PTH123", "PERF401",
+             "SLF001", "S310", "RUF043", "A002", "E501", "ARG002"]
+"core/*" = ["PERF401", "TRY003", "RUF012", "FBT001", "PTH123", "S310",
+            "PTH202", "PLC0415", "SIM102"]

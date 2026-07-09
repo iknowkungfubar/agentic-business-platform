@@ -7,11 +7,11 @@ a set of PolicyRules and returns an allow/deny/audit result.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class RuleEffect(str, Enum):
+class RuleEffect(StrEnum):
     """The effect of a policy rule when its conditions match."""
 
     ALLOW = "allow"

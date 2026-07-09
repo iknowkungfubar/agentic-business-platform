@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from core.pipeline.ingest import Document
+if TYPE_CHECKING:
+    from core.pipeline.ingest import Document
 
 
 @dataclass
@@ -82,7 +83,7 @@ class TextChunker:
                 current_chunk: list[str] = []
                 current_len = 0
 
-                for i, word in enumerate(words):
+                for _i, word in enumerate(words):
                     word_len = len(word) + 1  # +1 for space
                     if current_len + word_len > self.chunk_size and current_chunk:
                         chunks.append(
@@ -131,10 +132,10 @@ class TextChunker:
             segments = re.split(r"\n\s*\n", text)
             return [s.strip() for s in segments if s.strip()]
 
-        elif self.strategy == "sentence":
+        if self.strategy == "sentence":
             # Split on sentence boundaries
             segments = re.split(r"(?<=[.!?])\s+", text)
             return [s.strip() for s in segments if s.strip()]
 
-        else:  # fixed
-            return [text.strip()]
+        # fixed
+        return [text.strip()]

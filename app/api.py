@@ -79,6 +79,10 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         self._requests: dict[str, list[float]] = {}
 
     async def dispatch(self, request: Request, call_next):
+        # Allow disabling via env var for testing
+        if os.environ.get("DISABLE_RATE_LIMIT", "").lower() in ("1", "true", "yes"):
+            return await call_next(request)
+
         # Only rate-limit auth endpoints
         if request.url.path in ("/auth/login", "/auth/register"):
             client_ip = request.client.host if request.client else "unknown"

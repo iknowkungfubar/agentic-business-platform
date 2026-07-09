@@ -6,11 +6,10 @@ ingest → chunk → classify → route.
 
 from __future__ import annotations
 
-
 import pytest
 
-from core.pipeline.ingest import DocumentIngester
 from core.pipeline.chunk import TextChunker
+from core.pipeline.ingest import DocumentIngester
 from core.router.intent import IntentClassifier
 from core.router.selector import ModelSelector
 

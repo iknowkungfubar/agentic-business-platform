@@ -5,13 +5,12 @@ Tests the integrated flow: API → pipeline → router → governance.
 
 from __future__ import annotations
 
-
-from core.pipeline.ingest import DocumentIngester
+from core.governance.eval import AgentEvalSuite, EvalCriterion
+from core.governance.policy import PolicyEngine, PolicyRule, RuleEffect
 from core.pipeline.chunk import TextChunker
+from core.pipeline.ingest import DocumentIngester
 from core.router.intent import IntentClassifier
 from core.router.selector import ModelSelector
-from core.governance.policy import PolicyEngine, PolicyRule, RuleEffect
-from core.governance.eval import AgentEvalSuite, EvalCriterion
 
 
 class TestPlatformIntegrationE2E:

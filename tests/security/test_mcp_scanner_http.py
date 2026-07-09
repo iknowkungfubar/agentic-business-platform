@@ -8,7 +8,7 @@ from http.server import HTTPServer
 
 import pytest
 
-from core.security.mcp_scanner import MCPScanner, FindingSeverity
+from core.security.mcp_scanner import FindingSeverity, MCPScanner
 
 
 class TestMCPScannerHTTPPaths:
