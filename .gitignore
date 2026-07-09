@@ -17,6 +17,7 @@ Thumbs.db
 # Project
 acp/.venv/
 acp/*.db
+.opencode/
 .env
 .env.*
 dist/
