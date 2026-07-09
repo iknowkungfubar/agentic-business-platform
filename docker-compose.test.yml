@@ -1,0 +1,51 @@
+services:
+  # Minimal test stack — no monitoring, no workers, no frontend build
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: turin-test-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://turin:testpass@db:5432/turin
+      - JWT_SECRET=test-secret-do-not-use-in-production
+      - CORS_ORIGINS=*
+      - RATE_LIMIT_MAX=1000
+      - DISABLE_RATE_LIMIT=true
+      - DISABLE_MIGRATIONS=true
+      - LOG_LEVEL=error
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: turin-test-db
+    environment:
+      - POSTGRES_USER=turin
+      - POSTGRES_PASSWORD=testpass
+      - POSTGRES_DB=turin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U turin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: turin-test-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

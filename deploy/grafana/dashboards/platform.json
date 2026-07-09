@@ -1,0 +1,54 @@
+{
+  "title": "TurinTech Platform",
+  "uid": "turin-platform",
+  "tags": ["turin", "ai", "agent"],
+  "schemaVersion": 38,
+  "version": 1,
+  "timezone": "utc",
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [{"expr": "rate(http_requests_total[1m])", "legendFormat": "{{route}} {{method}}"}],
+      "description": "HTTP request rate per route"
+    },
+    {
+      "title": "Error Rate (5xx)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [{"expr": "rate(http_requests_total{status_class=~\"5xx\"}[1m])", "legendFormat": "{{route}}"}],
+      "description": "HTTP 5xx error rate by route"
+    },
+    {
+      "title": "P99 Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "{{route}}"}],
+      "description": "99th percentile request latency"
+    },
+    {
+      "title": "Total Requests (24h)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 8},
+      "targets": [{"expr": "sum(increase(http_requests_total[24h]))"}],
+      "description": "Total API requests in last 24 hours"
+    },
+    {
+      "title": "Active Agents",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 8},
+      "targets": [{"expr": "count(http_requests_total{route=~\"/api/v1/agents.*\"})"}],
+      "description": "Registered agent count"
+    },
+    {
+      "title": "P50 Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "targets": [{"expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "{{route}}"}]
+    }
+  ],
+  "templating": {"list": []},
+  "annotations": {"list": []},
+  "refresh": "30s"
+}

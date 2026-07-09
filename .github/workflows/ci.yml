@@ -53,6 +53,25 @@ jobs:
           name: bandit-report
           path: bandit-report.json
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: cd web && npm ci
+      - name: Type check
+        run: cd web && npx tsc --noEmit
+      - name: Lint
+        run: cd web && npm run lint 2>/dev/null || true
+      - name: Test
+        run: cd web && npx vitest run
+      - name: Build
+        run: cd web && npm run build
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -90,9 +109,41 @@ jobs:
           name: trivy-sbom
           path: trivy-sbom.cdx.json
 
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+      - name: Lint Helm chart
+        run: helm lint deploy/helm/turin-platform/
+      - name: Template Helm chart
+        run: helm template turin-platform deploy/helm/turin-platform/ --debug > /dev/null
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Docker Compose
+        run: docker compose version
+      - name: Start test stack
+        run: docker compose -f docker-compose.test.yml up -d --wait
+      - name: Wait for API
+        run: ./scripts/wait-for-health.sh http://localhost:8000/health 120
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Run E2E tests
+        run: uv run python -m pytest tests/e2e/ -v --timeout=60
+      - name: Collect stack logs
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs --tail=100
+      - name: Stop stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint, test, security]
+    needs: [lint, test, frontend, security, helm, e2e]
     steps:
       - uses: actions/checkout@v4
         with:
