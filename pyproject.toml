@@ -21,6 +21,8 @@ dependencies = [
     "ecdsa>=0.19.1",
     "agent-control-plane",
     "prometheus-client>=0.25.0",
+    "redis[cluster]>=5.0",
+    "arq>=0.26",
 ]
 
 [project.optional-dependencies]

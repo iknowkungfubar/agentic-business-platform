@@ -1,59 +1,89 @@
-"""Document ingestion endpoint."""
+"""Document ingestion endpoint — async dispatch to ARQ worker."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+import uuid
+from pathlib import Path
 
-from app.database import get_db
-from app.models import Document as DocumentModel
-from app.routers import require_role
+from arq import create_pool
+from arq.connections import RedisSettings
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
+
+from app.config import settings
+from app.routers import get_current_user
+from app.worker import get_task_status
 
 router = APIRouter(tags=["documents"])
 
+UPLOAD_DIR = Path(settings.upload_dir)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-class IngestResponse(BaseModel):
-    id: int
-    source: str
-    content_length: int
-    file_type: str
-    file_name: str
+# Redis connection for task dispatch
+_redis_settings = RedisSettings(
+    host="redis",
+    port=6379,
+    database=0,
+)
 
 
-@router.post("/documents/ingest", response_model=IngestResponse)
+@router.post("/documents/ingest")
 async def ingest_document(
-    path: str,
-    user: dict = Depends(require_role("operator")),
-    db: Session = Depends(get_db),
+    file: UploadFile,
+    user: dict = Depends(get_current_user),
 ):
-    from core.pipeline.ingest import DocumentIngester  # noqa: PLC0415
+    """Upload a document for async ingestion.
+    
+    Returns 202 Accepted with a task_id for status polling.
+    The background worker will parse, chunk, embed, and store the document.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
 
+    # Validate file type
+    allowed_extensions = {".txt", ".md", ".pdf", ".py", ".json", ".yaml", ".yml", ".csv", ".html", ".xml"}
+    ext = Path(file.filename).suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {ext}. Supported: {', '.join(sorted(allowed_extensions))}",
+        )
+
+    # Save uploaded file to temp directory
+    task_id = str(uuid.uuid4())
+    safe_name = f"{task_id}{ext}"
+    file_path = UPLOAD_DIR / safe_name
+
+    content = await file.read()
+    file_path.write_bytes(content)
+
+    # Dispatch to ARQ worker
     try:
-        ingester = DocumentIngester()
-        doc = ingester.ingest(path)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        pool = await create_pool(_redis_settings)
+        await pool.enqueue_job(
+            "ingest_document",
+            str(file_path),
+            file.filename,
+            user.get("org_id"),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Worker queue unavailable: {exc}")
 
-    record = DocumentModel(
-        source=doc.source,
-        content=doc.content,
-        file_type=doc.metadata.get("file_type", ""),
-        file_name=doc.metadata.get("file_name", ""),
-        file_size=doc.metadata.get("file_size", 0),
-        organization_id=user.get("org_id"),
-        created_by=user["user_id"],
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
+    return {
+        "task_id": task_id,
+        "status": "accepted",
+        "filename": file.filename,
+        "size": len(content),
+        "status_url": f"/api/v1/documents/status/{task_id}",
+    }
 
-    return IngestResponse(
-        id=record.id,
-        source=record.source,
-        content_length=len(doc.content),
-        file_type=record.file_type,
-        file_name=record.file_name,
-    )
+
+@router.get("/documents/status/{task_id}")
+async def document_status(
+    task_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Poll the status of a document ingestion task."""
+    status = await get_task_status(task_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return status

@@ -15,8 +15,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - audit_data:/app/data/audit
+      - upload_data:/tmp/turin-uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -25,8 +28,27 @@ services:
       timeout: 5s
       retries: 5
 
+  worker:
+    build: .
+    container_name: turin-worker
+    restart: unless-stopped
+    command: python -m app.worker
+    environment:
+      - DATABASE_URL=postgresql://turin:${PGPASSWORD:-turin}@db:5432/turin
+      - INFERENCE_URL=${INFERENCE_URL:-http://host.docker.internal:1234/v1}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - upload_data:/tmp/turin-uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: turin-db
     restart: unless-stopped
     environment:
@@ -43,11 +65,19 @@ services:
     ports:
       - "5432:5432"
 
-volumes:
-  pgdata:
-  audit_data:
+  redis:
+    image: redis:7-alpine
+    container_name: turin-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
-  # ── Monitoring Stack ──────────────────────────────────────────
+  # ── Monitoring (optional profile) ──────────────────────────
   prometheus:
     image: prom/prometheus:latest
     container_name: turin-prometheus
@@ -71,7 +101,6 @@ volumes:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_INSTALL_PLUGINS=
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
@@ -82,5 +111,6 @@ volumes:
 volumes:
   pgdata:
   audit_data:
+  upload_data:
   prometheus_data:
   grafana_data:

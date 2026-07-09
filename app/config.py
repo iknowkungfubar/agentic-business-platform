@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     oidc_jwks_url: str = ""
     oidc_issuer: str = ""
 
+    # ── Storage ──────────────────────────────────────────────────
+    upload_dir: str = "/tmp/turin-uploads"
+
     # ── Deployment ────────────────────────────────────────────────
     environment: str = "development"
     debug: bool = False
