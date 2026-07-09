@@ -50,7 +50,7 @@ class TestAPI:
     def test_register_and_login(self, api_client):
         """Full registration and login flow."""
         r = api_client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "test@test.com",
                 "password": "testpass123",
@@ -65,7 +65,7 @@ class TestAPI:
 
         # Login with same credentials
         r2 = api_client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "email": "test@test.com",
                 "password": "testpass123",
@@ -76,14 +76,14 @@ class TestAPI:
 
     def test_auth_required_endpoints(self, api_client):
         """Protected endpoints should return 401 without auth."""
-        r = api_client.post("/documents/ingest", params={"path": "/nonexistent"})
+        r = api_client.post("/api/v1/documents/ingest", params={"path": "/nonexistent"})
         assert r.status_code == 401
 
     def test_classify_with_auth(self, api_client):
         """Classify should work with valid auth."""
         # Register first
         r = api_client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "user@test.com",
                 "password": "pass",
@@ -95,7 +95,7 @@ class TestAPI:
         headers = {"Authorization": f"Bearer {token}"}
 
         r2 = api_client.post(
-            "/classify",
+            "/api/v1/classify",
             json={"text": "What is the capital of France?"},
             headers=headers,
         )
@@ -105,7 +105,7 @@ class TestAPI:
     def test_route_with_auth(self, api_client):
         """Route should work with valid auth."""
         r = api_client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "u2@test.com",
                 "password": "pass",
@@ -117,7 +117,7 @@ class TestAPI:
         headers = {"Authorization": f"Bearer {token}"}
 
         r2 = api_client.post(
-            "/route",
+            "/api/v1/route",
             json={"text": "def hello(): pass"},
             headers=headers,
         )
@@ -127,7 +127,7 @@ class TestAPI:
     def test_evaluate_with_auth(self, api_client):
         """Policy evaluation should work with auth."""
         r = api_client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "u3@test.com",
                 "password": "pass",
@@ -139,7 +139,7 @@ class TestAPI:
         headers = {"Authorization": f"Bearer {token}"}
 
         r2 = api_client.post(
-            "/evaluate",
+            "/api/v1/evaluate",
             json={
                 "action": {
                     "action_type": "data_access",
@@ -170,7 +170,7 @@ class TestAPI:
             db.commit()
 
         r2 = api_client.post(
-            "/scan-mcp",
+            "/api/v1/scan-mcp",
             json={"url": "http://127.0.0.1:1", "timeout": 1.0},
             headers=headers,
         )
@@ -183,7 +183,7 @@ class TestAPI:
 
         register_user(api_client, email="dup@test.com", password="pass")
         r = api_client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "dup@test.com",
                 "password": "pass",
@@ -199,7 +199,7 @@ class TestAPI:
 
         register_user(api_client, email="wp@test.com", password="correctpass")
         r = api_client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "email": "wp@test.com",
                 "password": "wrongpass",

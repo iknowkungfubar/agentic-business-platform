@@ -16,7 +16,7 @@ def register_user(
 ) -> dict[str, Any]:
     """Register a user and return the JSON response."""
     return client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": email,
             "password": password,
@@ -33,9 +33,9 @@ def auth_headers(
 ) -> dict[str, str]:
     """Register + login, return Bearer auth headers."""
     client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": email, "password": password, "org_name": "O"},
     )
-    r = client.post("/auth/login", json={"email": email, "password": password})
+    r = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     token = r.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

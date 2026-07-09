@@ -26,7 +26,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         if os.environ.get("DISABLE_RATE_LIMIT", "").lower() in ("1", "true", "yes"):
             return await call_next(request)
 
-        if request.url.path in ("/auth/login", "/auth/register"):
+        if request.url.path in ("/auth/login", "/auth/register", "/api/v1/auth/login", "/api/v1/auth/register"):
             client_ip = request.client.host if request.client else "unknown"
             now = datetime.now(UTC).timestamp()
 

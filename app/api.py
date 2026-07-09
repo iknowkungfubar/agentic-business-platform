@@ -112,12 +112,12 @@ app.add_middleware(
 app.add_middleware(RateLimiterMiddleware, max_requests=10, window_seconds=60)
 
 # ── Routers ───────────────────────────────────────────────────────
-
-app.include_router(health_router)
-app.include_router(auth_router)
-app.include_router(ingest_router)
-app.include_router(chat_router)
-app.include_router(eval_router)
-app.include_router(admin_router)
-app.include_router(mcp_router)
-app.include_router(sbom_router)
+# Health stays at root for k8s probes; everything else under /api/v1.
+app.include_router(health_router, prefix="")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
+app.include_router(eval_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(mcp_router, prefix="/api/v1")
+app.include_router(sbom_router, prefix="/api/v1")

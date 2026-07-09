@@ -56,7 +56,7 @@ class TestAPIIntegration:
         from tests.helpers import auth_headers
 
         headers = auth_headers(api_client)
-        response = api_client.post("/classify", json={"text": "Summarize this report"}, headers=headers)
+        response = api_client.post("/api/v1/classify", json={"text": "Summarize this report"}, headers=headers)
         assert response.status_code == 200
         assert response.json()["intent"] == "summarization"
 
@@ -64,7 +64,7 @@ class TestAPIIntegration:
         from tests.helpers import auth_headers
 
         headers = auth_headers(api_client)
-        response = api_client.post("/route", json={"text": "def foo(): pass"}, headers=headers)
+        response = api_client.post("/api/v1/route", json={"text": "def foo(): pass"}, headers=headers)
         assert response.status_code == 200
         assert response.json()["model_tier"] == "t3"
 
@@ -73,7 +73,7 @@ class TestAPIIntegration:
 
         headers = auth_headers(api_client)
         action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
-        response = api_client.post("/evaluate", json={"action": action}, headers=headers)
+        response = api_client.post("/api/v1/evaluate", json={"action": action}, headers=headers)
         assert response.status_code == 200
         assert response.json()["effect"] == "deny"
 
@@ -93,7 +93,9 @@ class TestAPIIntegration:
             user.role = "admin"
             db.commit()
 
-        response = api_client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=headers)
+        response = api_client.post(
+            "/api/v1/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=headers
+        )
         if response.status_code == 403:
             pytest.skip("Admin role not available in this test context")
         assert response.status_code == 200
@@ -114,7 +116,7 @@ class TestAPIIntegration:
             user.role = "admin"
             db.commit()
 
-        response = api_client.post("/sbom", json={"project_root": "."}, headers=headers)
+        response = api_client.post("/api/v1/sbom", json={"project_root": "."}, headers=headers)
         if response.status_code == 403:
             pytest.skip("Admin role not available in this test context")
         assert response.status_code == 200

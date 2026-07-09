@@ -32,7 +32,7 @@ def test_app_modules_are_wired() -> None:
     assert r.json()["status"] == "ok"
 
     r = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": "arch@test.com", "password": "arch123", "org_name": "ArchTest"},
     )
     assert r.status_code == 200
@@ -40,7 +40,7 @@ def test_app_modules_are_wired() -> None:
 
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    r = client.post("/classify", json={"text": "Hello world"}, headers=headers)
+    r = client.post("/api/v1/classify", json={"text": "Hello world"}, headers=headers)
     assert r.status_code == 200
     assert r.json()["intent"] in ("question_answering", "search", "summarization")
 
