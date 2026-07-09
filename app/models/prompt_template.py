@@ -4,6 +4,7 @@ Enables non-engineers to tune AI behavior without code deployments.
 The active template is queried at inference time, injecting variables
 via standard Python string formatting.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

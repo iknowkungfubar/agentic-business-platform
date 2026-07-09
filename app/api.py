@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import init_db
+from app.routers.a2a import router as a2a_router
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router
 from app.routers.api_keys import router as api_keys_router
@@ -37,6 +38,7 @@ from app.routers.sbom import router as sbom_router
 from app.routers.tenant import router as tenant_router
 from app.routers.workflows import router as workflows_router
 from app.ws import manager as ws_manager
+from app.ws_voice import manager as voice_manager
 
 from app.middleware import TokenBucketRateLimiter
 from app.telemetry import (
@@ -179,6 +181,20 @@ async def websocket_endpoint(websocket: WebSocket):
         await ws_manager.disconnect(websocket)
 
 
+@app.websocket("/ws/voice")
+async def voice_websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for WebRTC voice signaling.
+
+    Connect with: ws://host:8000/ws/voice?token=<jwt_token>
+    Handles SDP offer/answer, ICE candidates, and audio data.
+    """
+    payload = await voice_manager.connect(websocket)
+    if payload is None:
+        return
+    user_id = payload.get("user_id", 0)
+    await voice_manager.run_signaling_loop(websocket, user_id)
+
+
 # ── Routers ───────────────────────────────────────────────────────
 # Health stays at root for k8s probes; everything else under /api/v1.
 app.include_router(health_router, prefix="")
@@ -188,6 +204,7 @@ app.include_router(billing_router, prefix="/api/v1/billing")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1/feedback")
+app.include_router(a2a_router, prefix="/api/v1/a2a")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(agents_router, prefix="/api/v1/agents")
 app.include_router(api_keys_router, prefix="/api/v1/api-keys")

@@ -4,6 +4,7 @@ Enables ORG_ADMIN users to dynamically tune system prompts without
 code deployments. Supports versioned templates with named input
 variables for injection at inference time.
 """
+
 from __future__ import annotations
 
 import json
@@ -96,10 +97,14 @@ async def update_prompt(
     db: Session = Depends(get_db),
 ):
     """Update an existing prompt template."""
-    template = db.query(PromptTemplate).filter(
-        PromptTemplate.id == template_id,
-        PromptTemplate.organization_id == user.get("org_id"),
-    ).first()
+    template = (
+        db.query(PromptTemplate)
+        .filter(
+            PromptTemplate.id == template_id,
+            PromptTemplate.organization_id == user.get("org_id"),
+        )
+        .first()
+    )
     if not template:
         raise HTTPException(status_code=404, detail="Prompt template not found")
     template.name = req.name
@@ -116,10 +121,14 @@ async def delete_prompt(
     db: Session = Depends(get_db),
 ):
     """Delete a prompt template (soft: sets is_active to False)."""
-    template = db.query(PromptTemplate).filter(
-        PromptTemplate.id == template_id,
-        PromptTemplate.organization_id == user.get("org_id"),
-    ).first()
+    template = (
+        db.query(PromptTemplate)
+        .filter(
+            PromptTemplate.id == template_id,
+            PromptTemplate.organization_id == user.get("org_id"),
+        )
+        .first()
+    )
     if not template:
         raise HTTPException(status_code=404, detail="Prompt template not found")
     template.is_active = False

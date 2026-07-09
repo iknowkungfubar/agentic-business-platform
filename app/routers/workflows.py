@@ -34,10 +34,14 @@ async def approve_workflow(
     Validates the approval_token, verifies the user's RBAC role matches
     the required role, and pushes a resume event to Redis to wake the orchestrator.
     """
-    wf = db.query(WorkflowExecution).filter(
-        WorkflowExecution.id == workflow_id,
-        WorkflowExecution.organization_id == user.get("org_id"),
-    ).first()
+    wf = (
+        db.query(WorkflowExecution)
+        .filter(
+            WorkflowExecution.id == workflow_id,
+            WorkflowExecution.organization_id == user.get("org_id"),
+        )
+        .first()
+    )
 
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")

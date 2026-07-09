@@ -30,6 +30,7 @@ async def submit_feedback(
     """Submit user feedback on an LLM response for RLHF collection."""
     if req.rating not in (+1, -1):
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail="Rating must be +1 or -1")
 
     feedback = LLMFeedback(

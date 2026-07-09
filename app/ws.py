@@ -9,6 +9,7 @@ Architecture:
   Pod B: User2 (org=5) → WS connected → subscribes Redis channel "org:5:events"
   Worker publishes to "org:5:events" → Redis fan-out → both pods receive → both clients get the event
 """
+
 from __future__ import annotations
 
 import json

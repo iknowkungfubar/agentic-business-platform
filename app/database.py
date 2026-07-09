@@ -5,6 +5,7 @@ Supports:
 - CQRS (production): set DATABASE_URL_PRIMARY (writes) and DATABASE_URL_REPLICA (reads)
 - PgBouncer transaction pooling via optional DATABASE_URL_PGBOUNCER
 """
+
 from __future__ import annotations
 
 import os

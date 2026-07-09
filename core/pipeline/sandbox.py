@@ -7,6 +7,7 @@ a severely restricted subprocess with:
 - Timeout (30s max execution)
 - Allowed built-in functions only (no os, subprocess, shutil, etc.)
 """
+
 from __future__ import annotations
 
 import multiprocessing
@@ -53,13 +54,30 @@ SAFE_BUILTINS: dict[str, Any] = {
 }
 
 # Dangerously unsafe modules — blocked at import time
-BLOCKED_MODULES = ["os", "subprocess", "shutil", "socket", "requests", "httpx",
-                   "ctypes", "signal", "multiprocessing", "threading", "asyncio",
-                   "importlib", "eval", "exec", "compile", "open", "sys"]
+BLOCKED_MODULES = [
+    "os",
+    "subprocess",
+    "shutil",
+    "socket",
+    "requests",
+    "httpx",
+    "ctypes",
+    "signal",
+    "multiprocessing",
+    "threading",
+    "asyncio",
+    "importlib",
+    "eval",
+    "exec",
+    "compile",
+    "open",
+    "sys",
+]
 
 
 class SandboxResult:
     """Result of sandboxed execution."""
+
     def __init__(self, success: bool, output: str = "", error: str = ""):
         self.success = success
         self.output = output
