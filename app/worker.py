@@ -9,7 +9,10 @@ Or directly:
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import logging
 import os
 import uuid
 from datetime import UTC, datetime
@@ -198,6 +201,49 @@ async def _generate_embedding(text: str) -> list[float] | None:
     return None
 
 
+# ── SIEM Webhook Dispatch ─────────────────────────────────────
+
+
+async def dispatch_audit_webhook(ctx: dict, event_data: dict, webhook_url: str, webhook_secret: str) -> dict[str, Any]:
+    """ARQ task: dispatch an audit event to a tenant's SIEM webhook.
+
+    Signs the payload with HMAC-SHA256 using the tenant's webhook_secret
+    and sends it to the configured siem_webhook_url.
+    """
+    import httpx  # noqa: PLC0415
+
+    payload_bytes = json.dumps(event_data, default=str).encode("utf-8")
+
+    # HMAC-SHA256 signature
+    signature = hmac.new(
+        webhook_secret.encode("utf-8"),
+        payload_bytes,
+        hashlib.sha256,
+    ).hexdigest()
+
+    logger = logging.getLogger("turin-platform.webhook")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                webhook_url,
+                content=payload_bytes,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Signature": f"sha256={signature}",
+                    "X-Event-Type": "audit_event",
+                    "X-Event-Timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+            logger.info(
+                "webhook_dispatch_complete",
+                extra={"url": webhook_url, "status": resp.status_code, "signature": signature[:16]},
+            )
+            return {"status": resp.status_code, "sent": True}
+    except Exception as exc:
+        logger.error("webhook_dispatch_failed", extra={"url": webhook_url, "error": str(exc)})
+        return {"status": 0, "sent": False, "error": str(exc)}
+
+
 # ── ARQ Worker Configuration ─────────────────────────────────
 
 
@@ -216,7 +262,7 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions: list = [ingest_document]
+    functions: list = [ingest_document, dispatch_audit_webhook]
     on_startup: Any = startup
     on_shutdown: Any = shutdown
     redis_url: str = worker_settings.redis_url

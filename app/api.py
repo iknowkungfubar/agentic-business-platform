@@ -16,7 +16,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import init_db
-from app.middleware import RateLimiterMiddleware
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router
 from app.routers.audit import router as audit_router
@@ -32,7 +31,7 @@ from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 
-from app.middleware import RateLimiterMiddleware
+from app.middleware import TokenBucketRateLimiter
 from app.telemetry import (
     MetricsMiddleware,
     RequestIDMiddleware,
@@ -138,7 +137,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RateLimiterMiddleware, max_requests=int(os.getenv("RATE_LIMIT_MAX", "10")), window_seconds=60)
+app.add_middleware(TokenBucketRateLimiter)
 
 # ── Metrics endpoint (before routers) ────────────────────────────
 register_metrics_endpoint(app)

@@ -1,4 +1,4 @@
-"""Organization model."""
+"""Organization model with SIEM webhook configuration."""
 
 from __future__ import annotations
 
@@ -17,6 +17,10 @@ class Organization(Base):
     name = Column(String(255), unique=True, nullable=False)
     slug = Column(String(100), unique=True, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+
+    # ── SIEM Webhook Configuration ───────────────────────────────
+    siem_webhook_url = Column(String(512), default="")
+    webhook_secret = Column(String(128), default="")
 
     users = relationship("User", back_populates="organization")
     agents = relationship("AgentRecord", back_populates="organization")

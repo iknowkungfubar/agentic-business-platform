@@ -9,6 +9,7 @@ from app.models.document_chunk import DocumentChunk
 from app.models.mcp_scan import MCPScanResult
 from app.models.message import Message
 from app.models.organization import Organization
+from app.models.semantic_cache import SemanticCache
 from app.models.user import User
 
 __all__ = [

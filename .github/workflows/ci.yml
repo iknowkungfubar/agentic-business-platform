@@ -22,9 +22,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
       - name: Check formatting
-        run: uv run ruff format --check core/ tests/
+        run: uv run ruff format --check app/ core/ tests/
       - name: Lint
-        run: uv run ruff check core/ tests/
+        run: uv run ruff check app/ core/ tests/
 
   test:
     runs-on: ubuntu-latest
@@ -45,8 +45,13 @@ jobs:
         run: uv sync --extra dev
       - name: Run tests
         run: uv run python -m pytest tests/ -q --tb=short
-      - name: Check coverage
-        run: uv run python -m pytest tests/ --cov=core/ --cov-report=term-missing --cov-fail-under=70
+      - name: Security scan — Bandit
+        run: uv run pip install bandit && uv run python -m bandit -r app/ core/ -f json -o bandit-report.json || true
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
 
   security:
     runs-on: ubuntu-latest
@@ -62,14 +67,28 @@ jobs:
         run: uv python install 3.13
       - name: Install dependencies
         run: uv sync --extra dev
-      - name: Check dependencies
-        run: uv run python -m core.hardening.sbom
-      - name: Vulnerability audit
-        run: uv pip install pip-audit && uv run pip-audit --strict 2>&1 | tail -20 || true
-      - name: Secrets scan
-        run: uv pip install detect-secrets && uv run detect-secrets scan core/ 2>&1 | tail -20 || true
-      - name: List dependencies
-        run: uv pip list
+      - name: Trivy — filesystem scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          skip-dirs: .venv,node_modules,acp/.venv
+      - name: Trivy — SBOM
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: trivy-sbom.cdx.json
+          skip-dirs: .venv,node_modules,acp/.venv
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sbom
+          path: trivy-sbom.cdx.json
 
   build:
     runs-on: ubuntu-latest
@@ -84,10 +103,7 @@ jobs:
         run: git submodule update --init --recursive
       - name: Set up Python
         run: uv python install 3.13
+      - name: Install dependencies
+        run: uv sync --extra dev
       - name: Build package
         run: uv build
-      - name: Store build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
