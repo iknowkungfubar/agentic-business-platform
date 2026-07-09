@@ -20,8 +20,9 @@ from typing import Any
 
 from redis.asyncio import ConnectionPool, Redis
 
-from app.config import settings as app_settings
+from app.config import settings
 from app.worker_settings import worker_settings
+from core.pipeline.federated import federated_learning_round
 
 # In-memory task status fallback
 _task_status: dict[str, dict[str, Any]] = {}
@@ -61,7 +62,7 @@ def _get_db_session():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
-    db_url = os.getenv("DATABASE_URL", app_settings.database_url)
+    db_url = os.getenv("DATABASE_URL", settings.database_url)
     engine = create_engine(db_url, pool_pre_ping=True)
     session = Session(bind=engine)
     return session, engine
@@ -476,7 +477,13 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions: list = [ingest_document, dispatch_audit_webhook, daily_usage_metering, eu_ai_act_monitor]
+    functions: list = [
+        ingest_document,
+        dispatch_audit_webhook,
+        daily_usage_metering,
+        eu_ai_act_monitor,
+        federated_learning_round,
+    ]
     on_startup: Any = startup
     on_shutdown: Any = shutdown
     redis_url: str = worker_settings.redis_url

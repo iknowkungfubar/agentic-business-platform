@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # ── Storage ──────────────────────────────────────────────────
     upload_dir: str = "/tmp/turin-uploads"
 
+    # ── Chaos Engineering ──────────────────────────────────────────
+    chaos_mode: bool = False
+    chaos_failure_rate: float = 0.05  # 5% failure probability
+
     # ── Deployment ────────────────────────────────────────────────
     environment: str = "development"
     debug: bool = False

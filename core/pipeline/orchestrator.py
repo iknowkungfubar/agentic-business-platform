@@ -8,6 +8,8 @@ table, enabling crash recovery with zero data loss.
 from __future__ import annotations
 
 import json
+import os
+import random
 from datetime import UTC, datetime
 from typing import Any
 
@@ -170,9 +172,19 @@ class DAGOrchestrator:
 
     async def _execute_node(self, node: DAGNode) -> str:
         """Execute a single node — calls the appropriate agent/LLM."""
+        # Chaos Engineering: inject random failures when enabled
+        chaos = os.getenv("CHAOS_MODE", "false").lower() in ("1", "true", "yes")
+        if chaos and random.random() < 0.05:
+            failure_type = random.choice(["db_lock", "http_503", "timeout"])
+            if failure_type == "db_lock":
+                raise Exception("Chaos: Simulated DatabaseLockException")
+            elif failure_type == "http_503":
+                raise Exception("Chaos: Simulated HTTP 503 Service Unavailable")
+            else:
+                raise TimeoutError("Chaos: Simulated node timeout")
+
         import httpx  # noqa: PLC0415
         from app.config import settings  # noqa: PLC0415
-        import os  # noqa: PLC0415
 
         inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
         async with httpx.AsyncClient(timeout=60) as client:

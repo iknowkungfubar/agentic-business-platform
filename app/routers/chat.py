@@ -120,7 +120,8 @@ async def _stream_inference(
                     "messages": [
                         {
                             "role": "system",
-                            "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}.",
+                            "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}. "
+                            'Use <<render_component{"type":"...","props":{...}}>> for UI.',
                         },
                         {"role": "user", "content": message},
                     ],
@@ -143,10 +144,25 @@ async def _stream_inference(
                         try:
                             chunk = json.loads(payload)
                             delta = chunk.get("choices", [{}])[0].get("delta", {})
-                            token = delta.get("content", "")
-                            if token:
-                                full_content += token
-                                yield f"data: {json.dumps({'token': token})}\n\n".encode()
+                            content = delta.get("content", "")
+
+                            # Check for render_component tool calls in the content
+                            if content and "<<render_component" in content:
+                                # Extract the JSON args between markers
+                                import re as _re
+
+                                match = _re.search(r"<<render_component\s*({.*?})>>", content, _re.DOTALL)
+                                if match:
+                                    try:
+                                        comp_data = json.loads(match.group(1))
+                                        yield f"data: {json.dumps({'type': 'ui_component', 'component': comp_data})}\n\n".encode()
+                                    except json.JSONDecodeError:
+                                        pass
+                                    content = _re.sub(r"<<render_component\s*{.*?}>>", "", content)
+
+                            if content:
+                                full_content += content
+                                yield f"data: {json.dumps({'token': content})}\n\n".encode()
                             # Track token usage from stream
                             usage = chunk.get("usage", {})
                             if usage:
@@ -269,7 +285,8 @@ async def chat(
                 "messages": [
                     {
                         "role": "system",
-                        "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}.",
+                        "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}. "
+                        'Use <<render_component{"type":"...","props":{...}}>> for UI.',
                     },
                     {"role": "user", "content": req.message},
                 ],
