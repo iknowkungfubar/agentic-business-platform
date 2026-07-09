@@ -12,16 +12,7 @@ import pytest
 
 from app.api import app
 from app.auth import hash_password, verify_password, create_access_token, decode_token, generate_api_key, verify_api_key
-from app.db import Base, Organization, User, get_engine, init_db
-
-
-@pytest.fixture(autouse=True)
-def _setup_db():
-    """Use in-memory SQLite for tests."""
-    engine = get_engine()
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
+from app.db import User, init_db
 
 
 class TestAuth:

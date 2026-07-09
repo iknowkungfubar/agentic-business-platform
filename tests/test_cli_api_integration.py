@@ -54,11 +54,14 @@ class TestAPIIntegration:
         import os
         old_url = os.environ.get("DATABASE_URL", "")
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-        # Force re-import of db module with new URL
+        # Force re-import of db and api modules with new URL
         import app.db
         import importlib
         importlib.reload(app.db)
         app.db.init_db()
+        # Also reload app.api so it picks up the fresh get_db from app.db
+        import app.api
+        importlib.reload(app.api)
         yield
         # Restore
         if old_url:
