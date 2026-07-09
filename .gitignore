@@ -29,4 +29,12 @@ htmlcov/
 .pytest_cache/
 
 # AI agent artifacts (secrets - must not be tracked)
+AGENTS.md
+CLAUDE.md
 CONTEXT.md
+MEMORY.md
+.cursorrules
+.windsurfrules
+SKILL.md
+.hermes/
+.cursor/
