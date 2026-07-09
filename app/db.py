@@ -1,9 +1,6 @@
 """Database — backward-compat shim.  Use app.database or app.models directly for new code."""
 
-from __future__ import annotations
-
 from app.database import (
-    DATABASE_URL,
     Base,
     get_db,
     get_engine,

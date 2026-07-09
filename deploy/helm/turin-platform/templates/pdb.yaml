@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: turin-platform-api-pdb
+  namespace: {{ .Values.namespace | default "turin-platform" }}
+spec:
+  minAvailable: {{ .Values.minAvailable }}
+  selector:
+    matchLabels:
+      app: turin-platform
+      component: api

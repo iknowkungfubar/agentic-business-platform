@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: turin-platform-config
+  namespace: {{ .Values.namespace | default "turin-platform" }}
+data:
+  CORS_ORIGINS: {{ .Values.corsOrigins | quote }}
+  RATE_LIMIT_MAX: {{ .Values.rateLimitMax | quote }}
+  LOG_LEVEL: {{ .Values.logLevel | default "info" | quote }}
+  INFERENCE_URL: {{ .Values.inferenceUrl | default "http://lm-studio:1234/v1" | quote }}

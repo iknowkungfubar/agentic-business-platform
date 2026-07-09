@@ -11,7 +11,8 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
+from app.config import settings
+
 _engine: Any = None
 _SessionLocal: Any = None
 
@@ -24,7 +25,7 @@ def _get_engine():
     """Get or create the SQLAlchemy engine lazily."""
     global _engine, _SessionLocal
     if _engine is None:
-        url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
+        url = os.getenv("DATABASE_URL", settings.database_url)
         connect_args = {}
         if url.startswith("sqlite"):
             connect_args["check_same_thread"] = False

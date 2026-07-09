@@ -1,0 +1,18 @@
+apiVersion: v2
+name: turin-platform
+description: TurinTech Agentic Business Platform — enterprise sovereign AI infrastructure
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai
+  - agent
+  - enterprise
+  - sovereign
+  - platform
+home: https://turintech.solutions
+sources:
+  - https://github.com/iknowkungfubar/agentic-business-platform
+maintainers:
+  - name: TurinTech Solutions
+    email: hello@turintech.solutions

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turin-platform-api
+  namespace: {{ .Values.namespace | default "turin-platform" }}
+  labels:
+    app: turin-platform
+    component: api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: turin-platform
+      component: api
+  template:
+    metadata:
+      labels:
+        app: turin-platform
+        component: api
+      annotations:
+        prometheus.io/scrape: "{{ .Values.prometheus.enabled }}"
+        prometheus.io/path: "{{ .Values.prometheus.path }}"
+        prometheus.io/port: "8000"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: turin-platform-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: turin-platform-secrets
+                  key: jwt-secret
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: turin-platform-config
+                  key: CORS_ORIGINS
+            - name: RATE_LIMIT_MAX
+              valueFrom:
+                configMapKeyRef:
+                  name: turin-platform-config
+                  key: RATE_LIMIT_MAX
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: turin-platform-config
+                  key: LOG_LEVEL
+            - name: INFERENCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: turin-platform-config
+                  key: INFERENCE_URL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+          resources:
+            requests:
+              cpu: "{{ .Values.resources.api.requests.cpu }}"
+              memory: "{{ .Values.resources.api.requests.memory }}"
+            limits:
+              cpu: "{{ .Values.resources.api.limits.cpu }}"
+              memory: "{{ .Values.resources.api.limits.memory }}"
+          volumeMounts:
+            - name: audit-data
+              mountPath: /app/data/audit
+      volumes:
+        - name: audit-data
+          persistentVolumeClaim:
+            claimName: turin-platform-audit-pvc

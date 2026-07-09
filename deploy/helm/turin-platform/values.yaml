@@ -1,0 +1,87 @@
+# TurinTech Platform Helm Chart Values
+# Override these for environment-specific deployment
+
+# -- Number of API replicas
+replicaCount: 2
+
+image:
+  repository: ghcr.io/iknowkungfubar/agentic-business-platform
+  tag: latest
+  pullPolicy: Always
+
+# -- Container resource limits and requests
+resources:
+  api:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# -- Database configuration
+database:
+  url: ""  # Set via env or external secret
+  host: "turin-db"
+  port: 5432
+  name: "turin"
+  user: "turin"
+  # password: set via secret
+
+# -- JWT configuration
+jwt:
+  secret: ""  # Set via env or external secret
+
+# -- Ingress configuration
+ingress:
+  enabled: true
+  host: platform.turintech.local
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+# -- CORS origins (comma-separated)
+corsOrigins: "*"
+
+# -- Rate limiting
+rateLimitMax: 100
+
+# -- Service ports
+service:
+  port: 80
+  targetPort: 8000
+
+# -- Prometheus scraping
+prometheus:
+  enabled: true
+  path: /metrics
+
+# -- Pod disruption budget: min available
+minAvailable: 1
+
+# -- Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+# -- Node selector, tolerations, affinity
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- PostgreSQL subchart
+postgresql:
+  enabled: true
+  auth:
+    database: turin
+    username: turin
+    password: ""  # Auto-generated if empty
+  primary:
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi

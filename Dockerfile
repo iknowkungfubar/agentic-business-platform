@@ -17,12 +17,13 @@ RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
 COPY core/ ./core/
 COPY app/ ./app/
+COPY docker-entrypoint.sh ./
 
-RUN useradd -m -u 1000 turin && chown -R turin:turin /app
+RUN chmod +x docker-entrypoint.sh && useradd -m -u 1000 turin && chown -R turin:turin /app
 USER turin
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
 EXPOSE 8000
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
