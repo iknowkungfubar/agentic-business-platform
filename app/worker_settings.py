@@ -13,6 +13,7 @@ class WorkerSettings:
     - Embedding generation (vector DB population)
     - Any other CPU/IO-bound background tasks
     """
+
     # Redis connection
     redis_host: str = "redis"
     redis_port: int = 6379

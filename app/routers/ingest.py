@@ -32,7 +32,7 @@ async def ingest_document(
     user: dict = Depends(get_current_user),
 ):
     """Upload a document for async ingestion.
-    
+
     Returns 202 Accepted with a task_id for status polling.
     The background worker will parse, chunk, embed, and store the document.
     """

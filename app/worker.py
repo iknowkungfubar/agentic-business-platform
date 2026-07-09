@@ -6,6 +6,7 @@ Run with:
 Or directly:
     python -m app.worker
 """
+
 from __future__ import annotations
 
 import json
@@ -100,10 +101,14 @@ async def ingest_document(ctx: dict, file_path: str, original_name: str, org_id:
             for chunk in dataclass_chunks:
                 embedding = await _generate_embedding(chunk.content)
                 if embedding:
-                    db_chunk = session.query(DocumentChunk).filter(
-                        DocumentChunk.document_id == doc_id,
-                        DocumentChunk.chunk_index == chunk.index,
-                    ).first()
+                    db_chunk = (
+                        session.query(DocumentChunk)
+                        .filter(
+                            DocumentChunk.document_id == doc_id,
+                            DocumentChunk.chunk_index == chunk.index,
+                        )
+                        .first()
+                    )
                     if db_chunk:
                         _update_chunk_embedding(session, db_chunk.id, embedding)
                         embedded += 1
@@ -113,8 +118,13 @@ async def ingest_document(ctx: dict, file_path: str, original_name: str, org_id:
             engine.dispose()
 
         await _set_status(
-            task_id, "completed", file=original_name, progress=100,
-            document_id=doc_id, chunks=len(chunk_texts), embedded=embedded,
+            task_id,
+            "completed",
+            file=original_name,
+            progress=100,
+            document_id=doc_id,
+            chunks=len(chunk_texts),
+            embedded=embedded,
         )
         return {"task_id": task_id, "document_id": doc_id, "status": "completed"}
 
@@ -205,6 +215,7 @@ async def shutdown(ctx: dict) -> None:
 
 class WorkerSettings:
     """ARQ worker configuration."""
+
     functions: list = [ingest_document]
     on_startup: Any = startup
     on_shutdown: Any = shutdown

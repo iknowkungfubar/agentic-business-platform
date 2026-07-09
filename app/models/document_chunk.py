@@ -4,6 +4,7 @@ Each chunk stores a vector embedding that enables cosine similarity
 search for RAG (Retrieval-Augmented Generation) in chat queries.
 The pgvector extension must be enabled in PostgreSQL.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

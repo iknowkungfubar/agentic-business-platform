@@ -1,19 +1,104 @@
-"""Agent management endpoints — CRUD for agent records."""
+"""Agent management endpoints — ACP-powered agent registry.
+
+Uses the Agent Control Plane's inventory module for agent CRUD.
+Falls back to a simple file-based store when ACP is unavailable.
+"""
 
 from __future__ import annotations
 
+import json
+import os
+import sqlite3
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import AgentRecord
-from app.pagination import PaginationParams, paginate
+from app.pagination import Page, PaginationParams
 from app.routers import get_current_user, require_role
 
 router = APIRouter(tags=["agents"])
+
+
+def _get_db_path() -> str:
+    """Get ACP database path (env-overridable for tests)."""
+    return os.getenv("ACP_DB_PATH", "/app/data/acp_inventory.db")
+
+
+def _get_agents() -> list[dict[str, Any]]:
+    """Get all agents from the ACP inventory database."""
+    db_path = _get_db_path()
+    try:
+        import agent_control_plane.inventory as acp_inv  # noqa: PLC0415
+
+        conn = acp_inv.get_connection(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, url, provider, status, tags, created_at, last_seen FROM agents ORDER BY name")
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    except Exception:
+        return _get_agents_fallback(db_path)
+
+
+def _get_agents_fallback(db_path: str) -> list[dict[str, Any]]:
+    """Fallback: return agents from a simple SQLite store."""
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS agents ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "name TEXT, url TEXT, provider TEXT, status TEXT DEFAULT 'unknown', "
+        "tags TEXT DEFAULT '[]', created_at TEXT, last_seen TEXT)"
+    )
+    cursor.execute("SELECT id, name, url, provider, status, tags, created_at, last_seen FROM agents ORDER BY name")
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def _add_agent(name: str, url: str, provider: str, tags: list[str] | None = None) -> dict[str, Any]:
+    """Register an agent in the ACP inventory database."""
+    db_path = _get_db_path()
+    now = datetime.now(UTC).isoformat()
+    tags_json = json.dumps(tags or [])
+
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS agents ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "name TEXT, url TEXT, provider TEXT, status TEXT DEFAULT 'unknown', "
+            "tags TEXT DEFAULT '[]', created_at TEXT, last_seen TEXT)"
+        )
+        cursor.execute(
+            "INSERT INTO agents (name, url, provider, status, tags, created_at, last_seen) VALUES (?, ?, ?, 'unknown', ?, ?, ?)",
+            (name, url, provider, tags_json, now, now),
+        )
+        conn.commit()
+        return {"id": cursor.lastrowid, "name": name, "url": url, "provider": provider, "status": "unknown"}
+    finally:
+        conn.close()
+
+
+def _update_agent_status(agent_id: int, status: str) -> None:
+    """Update agent health status."""
+    db_path = _get_db_path()
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "UPDATE agents SET status = ?, last_seen = ? WHERE id = ?",
+            (status, datetime.now(UTC).isoformat(), agent_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 class AgentCreateRequest(BaseModel):
@@ -27,109 +112,63 @@ class AgentCreateRequest(BaseModel):
 async def list_agents(
     page_params: PaginationParams = Depends(),
     user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
-    """List all agents visible to the user's organization (paginated)."""
-    query = db.query(AgentRecord).filter(AgentRecord.organization_id == user.get("org_id")).order_by(AgentRecord.name)
-    total = query.count()
-    agents = query.offset(page_params.offset).limit(page_params.page_size).all()
-    items = [
-        {
-            "id": a.id,
-            "name": a.name,
-            "url": a.url,
-            "provider": a.provider,
-            "status": a.status,
-            "tags": a.tags,
-            "last_seen": a.last_seen.isoformat() if a.last_seen else None,
-        }
-        for a in agents
-    ]
-    return paginate(items, total, page_params)
+    agents = _get_agents()
+    offset = page_params.offset
+    limit = page_params.page_size
+    page_items = agents[offset : offset + limit] if offset < len(agents) else []
+    return Page(
+        items=page_items,
+        total=len(agents),
+        page=page_params.page,
+        page_size=page_params.page_size,
+        total_pages=max(1, (len(agents) + page_params.page_size - 1) // page_params.page_size),
+    )
 
 
 @router.post("")
 async def register_agent(
     req: AgentCreateRequest,
     user: dict = Depends(require_role("operator")),
-    db: Session = Depends(get_db),
 ):
-    """Register a new agent."""
-    agent = AgentRecord(
-        name=req.name,
-        url=req.url,
-        provider=req.provider,
-        tags=str(req.tags) if req.tags else "[]",
-        status="unknown",
-        organization_id=user.get("org_id"),
-    )
-    db.add(agent)
-    db.commit()
-    db.refresh(agent)
-    return {
-        "id": agent.id,
-        "name": agent.name,
-        "url": agent.url,
-        "provider": agent.provider,
-        "status": agent.status,
-    }
+    try:
+        result = _add_agent(name=req.name, url=req.url, provider=req.provider, tags=req.tags)
+        return result
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Failed to register agent: {exc}")
 
 
 @router.get("/{agent_id}")
 async def get_agent(
     agent_id: int,
     user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
-    """Get agent detail."""
-    agent = (
-        db.query(AgentRecord)
-        .filter(
-            AgentRecord.id == agent_id,
-            AgentRecord.organization_id == user.get("org_id"),
-        )
-        .first()
-    )
-    if not agent:
+    agents = [a for a in _get_agents() if a.get("id") == agent_id]
+    if not agents:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return {
-        "id": agent.id,
-        "name": agent.name,
-        "url": agent.url,
-        "provider": agent.provider,
-        "status": agent.status,
-        "tags": agent.tags,
-        "last_seen": agent.last_seen.isoformat() if agent.last_seen else None,
-        "created_at": agent.created_at.isoformat() if agent.created_at else None,
-    }
+    return agents[0]
 
 
 @router.post("/{agent_id}/health")
 async def check_agent_health(
     agent_id: int,
     user: dict = Depends(require_role("operator")),
-    db: Session = Depends(get_db),
 ):
-    """Trigger a health check on an agent."""
-    agent = (
-        db.query(AgentRecord)
-        .filter(
-            AgentRecord.id == agent_id,
-            AgentRecord.organization_id == user.get("org_id"),
-        )
-        .first()
-    )
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
     import httpx  # noqa: PLC0415
 
-    try:
-        resp = httpx.get(agent.url, timeout=5.0)
-        agent.status = "healthy" if resp.status_code < 500 else "degraded"
-    except Exception:
-        agent.status = "unreachable"
+    agents = [a for a in _get_agents() if a.get("id") == agent_id]
+    if not agents:
+        raise HTTPException(status_code=404, detail="Agent not found")
 
-    agent.last_seen = datetime.now(UTC)
-    db.commit()
-    return {"id": agent.id, "status": agent.status, "last_seen": agent.last_seen.isoformat()}
+    agent_url = agents[0].get("url", "")
+    if not agent_url:
+        raise HTTPException(status_code=400, detail="Agent has no URL configured")
+
+    try:
+        resp = httpx.get(agent_url, timeout=5.0)
+        status = "healthy" if resp.status_code < 500 else "degraded"
+    except Exception:
+        status = "unreachable"
+
+    _update_agent_status(agent_id, status)
+    return {"id": agent_id, "status": status, "last_seen": datetime.now(UTC).isoformat()}

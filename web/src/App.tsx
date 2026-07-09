@@ -6,17 +6,13 @@ import { useAppStore } from './store/useChatStore';
 export function App() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { replace: true });
       return;
     }
-    if (location.pathname === '/') {
-      navigate('/chat', { replace: true });
-    }
-  }, [isAuthenticated, navigate, location.pathname]);
+  }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) return null;
 

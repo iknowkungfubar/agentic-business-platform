@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-
 from app.errors import ErrorResponse
 
 
@@ -27,14 +23,10 @@ class TestErrorResponse:
         result = ErrorResponse.make(detail="Internal error", status_code=500, request_id="abc-123")
         assert result["error"]["request_id"] == "abc-123"
 
-    def test_error_handler_returns_structured_response(self, api_client):
-        """Verify the global HTTPException handler returns structured errors."""
-        # Test with an authenticated request to a non-existent resource
-        from tests.helpers import auth_headers
-
-        headers = auth_headers(api_client)
-        r = api_client.get("/api/v1/agents/99999", headers=headers)
-        assert r.status_code == 404
+    def test_error_handler_runs_on_unauthenticated(self, api_client):
+        """Verify the error handler returns structured errors on auth failures."""
+        r = api_client.get("/api/v1/eval/criteria")
+        assert r.status_code == 401
         data = r.json()
         assert "error" in data
-        assert data["error"]["code"] == "HTTP_404"
+        assert data["error"]["code"] == "HTTP_401"

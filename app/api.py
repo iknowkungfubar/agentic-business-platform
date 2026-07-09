@@ -75,7 +75,13 @@ def _wait_for_db() -> None:
 
 
 def _run_migrations() -> None:
-    """Run Alembic migrations, falling back to init_db()."""
+    """Run Alembic migrations, falling back to init_db().
+
+    Skips migration entirely if DISABLE_MIGRATIONS=true (used in tests
+    where test_db fixture handles schema creation).
+    """
+    if os.environ.get("DISABLE_MIGRATIONS", "").lower() in ("1", "true", "yes"):
+        return
     try:
         from alembic import command  # noqa: PLC0415
         from alembic.config import Config  # noqa: PLC0415

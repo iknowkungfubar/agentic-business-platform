@@ -5,6 +5,7 @@ import { App } from './App';
 import { AuthScreen } from './components/AuthScreen';
 import { Dashboard } from './components/Dashboard';
 import { ChatArea } from './components/ChatArea';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -12,7 +13,14 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<AuthScreen />} />
-        <Route path="/" element={<App />}>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <App />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatArea />} />
           <Route path="chat/:conversationId" element={<ChatArea />} />
