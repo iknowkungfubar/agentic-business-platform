@@ -522,48 +522,38 @@ chat.send            → Send message to agentic chat
 
 ```
 agentic-business-platform/
-├── platform/                    # Core platform backend
-│   ├── api/                    # FastAPI application
-│   │   ├── routes/            # API route handlers
-│   │   ├── models/            # Pydantic models / schemas
-│   │   └── middleware/        # Auth, audit, rate limiting
-│   ├── compliance/            # Compliance evidence engine  ← SPRINT 1
-│   │   ├── engine.py          # Report generation core
-│   │   ├── controls/          # Control framework definitions
-│   │   │   ├── cmmc.py        # CMMC 2.0 Level 2 controls
-│   │   │   ├── eu_ai_act.py   # EU AI Act articles
-│   │   │   └── gdpr.py        # GDPR articles
-│   │   ├── evidence.py        # Evidence collection + verification
-│   │   └── templates/         # Report template files
-│   ├── audit/                 # WORM audit trail ← SPRINT 1
-│   │   ├── worm_store.py      # Append-only log storage
-│   │   ├── signing.py         # Cryptographic signing of events
-│   │   └── verification.py    # Chain integrity verification
-│   ├── identity/              # RBAC + SSO integration ← SPRINT 1
-│   │   ├── provider.py        # Identity provider abstraction
-│   │   ├── roles.py           # Role definitions
-│   │   └── middleware.py      # Auth middleware
-│   ├── data_pipeline/         # Document ingestion ← SPRINT 2
-│   ├── orchestration/         # Model routing + task dispatch ← SPRINT 2
-│   ├── governance/            # Policy engine + eval ← SPRINT 3
-│   ├── mcp_scanner/           # MCP security scanning ← SPRINT 4
-│   ├── airgap/                # Air-gap deployment ← SPRINT 4
-│   └── main.py               # Application entry point
-├── web/                        # Frontend (React/TypeScript)
-│   ├── chat/                  # Agentic chat interface
-│   ├── admin/                 # Admin dashboard
-│   └── components/            # Shared UI components
-├── tests/
-│   ├── unit/                  # Unit tests
-│   ├── integration/           # Integration tests
-│   └── compliance/            # Compliance-specific tests
-├── docs/
-│   ├── architecture.md        # Architecture documentation
-│   ├── compliance/            # Compliance documentation
-│   └── deployment/            # Deployment guides
-├── spec/                       # Spec files
-│   ├── SPEC.md                # This file
-│   └── sprints/               # Per-sprint specs
+├── core/                        # Core library package
+│   ├── pipeline/                # Data pipeline ← SPRINT 2
+│   │   ├── ingest.py            # Document ingestion (txt, md, pdf, code, etc.)
+│   │   └── chunk.py             # Text chunking with overlap strategies
+│   ├── router/                  # Model router ← SPRINT 2
+│   │   ├── intent.py            # Intent classifier (9 intent types)
+│   │   └── selector.py          # Model selector (4 tiers T1-T4)
+│   ├── governance/              # Governance core ← SPRINT 3
+│   │   ├── policy.py            # Policy engine (ALLOW/DENY/AUDIT)
+│   │   ├── templates.py         # Policy templates (CMMC, GDPR, EU AI Act)
+│   │   ├── eval.py              # Agent evaluation suite
+│   │   └── redteam.py           # Red-team scheduler
+│   ├── security/                # Security tools ← SPRINT 4
+│   │   └── mcp_scanner.py       # MCP endpoint security scanner
+│   └── hardening/               # Production hardening ← SPRINT 5
+│       └── sbom.py              # SPDX 2.3 SBOM generator
+├── app/                         # Application layer (CLI + API)
+│   ├── cli.py                   # CLI entry point (ingest, classify, route, evaluate, scan-mcp, sbom)
+│   └── api.py                   # FastAPI REST server (all endpoints)
+├── acp/                         # Agent Control Plane submodule ← SPRINT 1
+├── tests/                       # Test suite
+│   ├── pipeline/                # Ingest and chunk tests
+│   ├── router/                  # Intent and selector tests
+│   ├── governance/              # Policy, eval, red-team tests
+│   ├── security/                # MCP scanner tests
+│   └── test_*_e2e.py            # End-to-end integration tests
+├── docs/                        # Documentation
+│   ├── airgap-deployment-blueprint.md
+│   └── enterprise-chat-architecture.md
+├── .github/workflows/           # CI pipeline
+├── SPEC.md                      # Platform specification
+├── SECURITY.md                  # Security policy
 ├── pyproject.toml
 └── README.md
 ```
