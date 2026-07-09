@@ -54,6 +54,36 @@ class TestCLIIntegration:
 class TestAPIIntegration:
     """Tests for the API server endpoints."""
 
+    @pytest.fixture(autouse=True)
+    def _init_db(self):
+        from app.db import init_db
+        init_db()
+
+    @pytest.fixture
+    def auth_headers(self, _init_db):
+        """Register a user and get auth headers."""
+        try:
+            from app.api import app
+            from fastapi.testclient import TestClient
+        except ImportError:
+            pytest.skip("FastAPI not available")
+
+        client = TestClient(app)
+        r = client.post("/auth/register", json={
+            "email": "apitest@test.com", "password": "testpass",
+            "full_name": "API Test", "org_name": "APITest",
+        })
+        # Upgrade to admin
+        from app.db import User, get_db
+        db = next(get_db())
+        user = db.query(User).filter(User.email == "apitest@test.com").first()
+        if user:
+            user.role = "admin"
+            db.commit()
+
+        token = r.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
     def test_api_health(self):
         """Health endpoint should return OK."""
         try:
@@ -67,7 +97,7 @@ class TestAPIIntegration:
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
 
-    def test_api_classify(self):
+    def test_api_classify(self, auth_headers):
         """Classify endpoint should return intent."""
         try:
             from app.api import app
@@ -76,12 +106,12 @@ class TestAPIIntegration:
             pytest.skip("FastAPI not available")
 
         client = TestClient(app)
-        response = client.post("/classify", json={"text": "Summarize this report"})
+        response = client.post("/classify", json={"text": "Summarize this report"}, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["intent"] == "summarization"
 
-    def test_api_route(self):
+    def test_api_route(self, auth_headers):
         """Route endpoint should return model tier."""
         try:
             from app.api import app
@@ -90,12 +120,12 @@ class TestAPIIntegration:
             pytest.skip("FastAPI not available")
 
         client = TestClient(app)
-        response = client.post("/route", json={"text": "def foo(): pass"})
+        response = client.post("/route", json={"text": "def foo(): pass"}, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["model_tier"] == "t3"
 
-    def test_api_evaluate(self):
+    def test_api_evaluate(self, auth_headers):
         """Evaluate endpoint should return policy decision."""
         try:
             from app.api import app
@@ -105,12 +135,12 @@ class TestAPIIntegration:
 
         client = TestClient(app)
         action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
-        response = client.post("/evaluate", json={"action": action})
+        response = client.post("/evaluate", json={"action": action}, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["effect"] == "deny"
 
-    def test_api_scan_mcp(self):
+    def test_api_scan_mcp(self, auth_headers):
         """Scan MCP endpoint should handle unreachable servers."""
         try:
             from app.api import app
@@ -119,12 +149,12 @@ class TestAPIIntegration:
             pytest.skip("FastAPI not available")
 
         client = TestClient(app)
-        response = client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0})
+        response = client.post("/scan-mcp", json={"url": "http://127.0.0.1:1", "timeout": 1.0}, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["reachable"] is False
 
-    def test_api_sbom(self):
+    def test_api_sbom(self, auth_headers):
         """SBOM endpoint should return dependency info."""
         try:
             from app.api import app
@@ -133,7 +163,7 @@ class TestAPIIntegration:
             pytest.skip("FastAPI not available")
 
         client = TestClient(app)
-        response = client.post("/sbom", json={"project_root": "."})
+        response = client.post("/sbom", json={"project_root": "."}, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert "project_name" in data
