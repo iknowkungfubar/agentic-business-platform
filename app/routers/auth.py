@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import create_access_token, generate_api_key, hash_password, verify_password
+from app.auth import (
+    create_access_token,
+    generate_api_key,
+    get_oidc_discovery_document,
+    hash_password,
+    verify_password,
+)
 from app.database import get_db
 from app.models import APIKey, Organization, User
 from app.routers import get_current_user, require_role
@@ -87,6 +93,15 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me")
 async def me(user: dict = Depends(get_current_user)):
     return user
+
+
+@router.get("/.well-known/openid-configuration")
+async def oidc_discovery():
+    """OIDC discovery document — enables SSO provider auto-configuration."""
+    doc = get_oidc_discovery_document()
+    if not doc:
+        return {"error": "OIDC not configured", "note": "Set OIDC_JWKS_URL and OIDC_ISSUER env vars"}
+    return doc
 
 
 @router.post("/api-key")

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     log_level: str = "info"
     disable_rate_limit: bool = False
 
+    # ── OIDC / SSO ───────────────────────────────────────────────
+    oidc_jwks_url: str = ""
+    oidc_issuer: str = ""
+
     # ── Deployment ────────────────────────────────────────────────
     environment: str = "development"
     debug: bool = False

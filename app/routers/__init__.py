@@ -8,26 +8,26 @@ from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.auth import decode_token, verify_api_key
+from app.auth import validate_oidc_token, verify_api_key
 from app.database import get_db
 from app.models import APIKey, User
 
 security = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     x_api_key: str | None = Header(None),
 ) -> dict[str, Any]:
-    """Extract and validate the current user from JWT or API key."""
-    db = next(get_db())
+    """Extract and validate the current user from JWT or API key.
 
-    if credentials:
-        payload = decode_token(credentials.credentials)
-        if payload:
-            return payload
-
+    Supports:
+    - OIDC JWTs (production SSO with Keycloak/ZITADEL)
+    - Local JWTs (development/fallback)
+    - API keys (programmatic access)
+    """
     if x_api_key:
+        db = next(get_db())
         key_prefix = x_api_key[:10]
         stored = (
             db.query(APIKey)
@@ -46,8 +46,17 @@ def get_current_user(
                     "org_id": user.organization_id,
                     "role": user.role,
                 }
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
-    raise HTTPException(status_code=401, detail="Not authenticated")
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Try OIDC validation first, fall back to local decode
+    payload = await validate_oidc_token(credentials.credentials)
+    if payload:
+        return payload
+
+    raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 def require_role(role: str):

@@ -1,19 +1,22 @@
-"""Classifier, router, evaluate, and chat endpoints."""
+"""Classifier, router, evaluate, and chat endpoints with SSE streaming."""
 
 from __future__ import annotations
 
+import json
 import os
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models import Conversation, Message
 from app.routers import get_current_user
 
 router = APIRouter(tags=["orchestration"])
-
 
 # ── Classify ──────────────────────────────────────────────────
 
@@ -80,7 +83,124 @@ async def evaluate(req: EvaluateRequest, user: dict = Depends(get_current_user))
     }
 
 
-# ── Chat ──────────────────────────────────────────────────────
+# ── Chat (SSE Streaming) ─────────────────────────────────────
+
+
+async def _stream_inference(
+    message: str,
+    conversation_id: int,
+    user: dict[str, Any],
+    db: Session,
+    background_tasks: BackgroundTasks,
+):
+    """Generator that streams tokens from LM Studio via SSE and saves to DB on completion."""
+    from core.router.intent import IntentClassifier  # noqa: PLC0415
+    from core.router.selector import ModelSelector  # noqa: PLC0415
+
+    classifier = IntentClassifier()
+    selector = ModelSelector()
+    intent = classifier.classify(message)
+    route = selector.select(intent, message)
+
+    full_content = ""
+    tokens_used = 0
+    stream_error: str | None = None
+
+    import httpx  # noqa: PLC0415
+
+    inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream(
+                "POST",
+                f"{inference_url}/chat/completions",
+                json={
+                    "model": settings.inference_model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}.",
+                        },
+                        {"role": "user", "content": message},
+                    ],
+                    "max_tokens": 1024,
+                    "temperature": 0.7,
+                    "stream": True,
+                },
+            ) as resp:
+                if resp.status_code != 200:
+                    error_body = await resp.aread()
+                    yield f"data: {json.dumps({'error': f'Inference server returned {resp.status_code}: {error_body.decode()}'})}\n\n".encode()
+                    stream_error = f"HTTP {resp.status_code}"
+                else:
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        payload = line[6:]
+                        if payload.strip() == "[DONE]":
+                            continue
+                        try:
+                            chunk = json.loads(payload)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            token = delta.get("content", "")
+                            if token:
+                                full_content += token
+                                yield f"data: {json.dumps({'token': token})}\n\n".encode()
+                            # Track token usage from stream
+                            usage = chunk.get("usage", {})
+                            if usage:
+                                tokens_used = usage.get("completion_tokens", 0) or usage.get("total_tokens", 0)
+                        except json.JSONDecodeError:
+                            continue
+    except Exception as exc:
+        error_msg = str(exc)
+        yield f"data: {json.dumps({'error': f'Inference unavailable: {error_msg}'})}\n\n".encode()
+        stream_error = error_msg
+
+    # Save the completed message via background task
+    background_tasks.add_task(
+        _save_message,
+        conversation_id=conversation_id,
+        role="assistant",
+        content=full_content or f"[Demo mode — inference unavailable: {stream_error}]",
+        model_tier=route.model_tier,
+        tokens_used=tokens_used,
+    )
+
+    # Send completion event with conversation_id
+    yield f"data: {json.dumps({'conversation_id': conversation_id, 'done': True})}\n\n".encode()
+
+
+async def _save_message(
+    conversation_id: int,
+    role: str,
+    content: str,
+    model_tier: str,
+    tokens_used: int,
+) -> None:
+    """Background task: save a message record to the database."""
+    db = next(get_db())
+    try:
+        msg = Message(
+            conversation_id=conversation_id,
+            role=role,
+            content=content,
+            model_tier=model_tier,
+            tokens_used=tokens_used,
+        )
+        db.add(msg)
+        # Update conversation timestamp
+        conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if conv:
+            from datetime import UTC, datetime
+
+            conv.updated_at = datetime.now(UTC)
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
 
 
 class ChatRequest(BaseModel):
@@ -91,9 +211,11 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(
     req: ChatRequest,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Non-streaming chat endpoint (backward compatible)."""
     from core.router.intent import IntentClassifier  # noqa: PLC0415
     from core.router.selector import ModelSelector  # noqa: PLC0415
 
@@ -118,7 +240,6 @@ async def chat(
         db.add(conv)
         db.flush()
 
-    # Classify and route
     classifier = IntentClassifier()
     selector = ModelSelector()
     intent = classifier.classify(req.message)
@@ -133,23 +254,22 @@ async def chat(
     )
     db.add(user_msg)
 
-    # Try to call LM Studio inference
+    # Call LM Studio inference
     inference_result = ""
     tokens_used = 0
-    inference_url = os.getenv("INFERENCE_URL", "http://localhost:1234/v1")
+    inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
+
     try:
         import httpx  # noqa: PLC0415
 
         resp = httpx.post(
             f"{inference_url}/chat/completions",
             json={
-                "model": "qwen3.5-9b-deepseek-v4-flash",
+                "model": settings.inference_model,
                 "messages": [
                     {
                         "role": "system",
-                        "content": (
-                            f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}."
-                        ),
+                        "content": f"You are a helpful AI assistant. Intent: {intent.intent_type}. Route: {route.model_tier}.",
                     },
                     {"role": "user", "content": req.message},
                 ],
@@ -164,19 +284,18 @@ async def chat(
             tokens_used = data.get("usage", {}).get("total_tokens", 0)
         else:
             inference_result = f"[Inference server returned {resp.status_code}]"
-    except Exception as e:
-        inference_result = f"[Demo mode — inference unavailable: {e}]"
+    except Exception as exc:
+        inference_result = f"[Demo mode — inference unavailable: {exc}]"
 
-    # Store assistant message
-    assistant_msg = Message(
+    # Save assistant message via background task
+    background_tasks.add_task(
+        _save_message,
         conversation_id=conv.id,
         role="assistant",
         content=inference_result,
         model_tier=route.model_tier,
         tokens_used=tokens_used,
     )
-    db.add(assistant_msg)
-    db.commit()
 
     return {
         "conversation_id": conv.id,
@@ -185,6 +304,65 @@ async def chat(
         "model_tier": route.model_tier,
         "tokens_used": tokens_used,
     }
+
+
+@router.get("/chat/stream")
+async def chat_stream(
+    message: str = Query(..., description="User message"),
+    conversation_id: int | None = Query(None, description="Existing conversation ID"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Streaming chat endpoint using Server-Sent Events."""
+    # Get or create conversation
+    if conversation_id:
+        conv = (
+            db.query(Conversation)
+            .filter(
+                Conversation.id == conversation_id,
+                Conversation.organization_id == user.get("org_id"),
+            )
+            .first()
+        )
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+    else:
+        conv = Conversation(
+            title=message[:80],
+            user_id=user["user_id"],
+            organization_id=user.get("org_id"),
+        )
+        db.add(conv)
+        db.flush()
+
+    # Store user message immediately
+    from core.router.intent import IntentClassifier  # noqa: PLC0415
+    from core.router.selector import ModelSelector  # noqa: PLC0415
+
+    classifier = IntentClassifier()
+    selector = ModelSelector()
+    intent = classifier.classify(message)
+    route = selector.select(intent, message)
+
+    user_msg = Message(
+        conversation_id=conv.id,
+        role="user",
+        content=message,
+        model_tier=route.model_tier,
+    )
+    db.add(user_msg)
+    db.commit()
+
+    return StreamingResponse(
+        _stream_inference(message, conv.id, user, db, background_tasks),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ── Conversations ─────────────────────────────────────────────
