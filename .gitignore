@@ -27,3 +27,6 @@ dist/
 coverage/
 htmlcov/
 .pytest_cache/
+
+# AI agent artifacts (secrets - must not be tracked)
+CONTEXT.md
