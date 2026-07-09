@@ -191,7 +191,7 @@ class TestAPI:
             },
         )
         assert r.status_code == 400
-        assert "already registered" in r.json()["detail"]
+        assert "already registered" in r.json()["error"]["message"]
 
     def test_login_wrong_password(self, api_client):
         """Wrong password should be rejected."""

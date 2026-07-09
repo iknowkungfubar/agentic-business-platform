@@ -6,6 +6,7 @@ Route handlers live in app/routers/ (one module per domain).
 
 from __future__ import annotations
 
+import os
 import time
 from contextlib import asynccontextmanager
 from typing import Any
@@ -27,19 +28,24 @@ from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 
+# ── Telemetry (structured logging, metrics) ──────────────────────
+from app.telemetry import (
+    MetricsMiddleware,
+    RequestIDMiddleware,
+    get_logger,
+    register_metrics_endpoint,
+    setup_logging,
+)
+
+setup_logging()
+logger = get_logger("turin-platform")
+
 _MAX_DB_RETRIES = 12
-_DB_RETRY_DELAY = 2.5  # seconds
+_DB_RETRY_DELAY = 2.5
 
 
 def _wait_for_db() -> None:
-    """Retry connecting to the database with backoff.
-
-    Handles the case where PostgreSQL isn't ready yet on first boot
-    (docker-compose startup race).
-    """
-    import logging
-
-    logger = logging.getLogger("turin-platform")
+    """Retry connecting to the database with backoff for PostgreSQL startup race."""
     for attempt in range(1, _MAX_DB_RETRIES + 1):
         try:
             from app.database import _get_engine  # noqa: PLC0415
@@ -47,42 +53,36 @@ def _wait_for_db() -> None:
             conn = _get_engine().connect()
             conn.execute(text("SELECT 1"))
             conn.close()
-            logger.info("Database ready (attempt %d/%d)", attempt, _MAX_DB_RETRIES)
+            logger.info("db_ready", extra={"attempt": attempt, "max_retries": _MAX_DB_RETRIES})
             return
         except Exception as exc:
             if attempt < _MAX_DB_RETRIES:
                 logger.warning(
-                    "Database not ready (attempt %d/%d): %s. Retrying in %.1fs...",
-                    attempt,
-                    _MAX_DB_RETRIES,
-                    exc,
-                    _DB_RETRY_DELAY,
+                    "db_not_ready",
+                    extra={"attempt": attempt, "max_retries": _MAX_DB_RETRIES, "error": str(exc)},
                 )
                 time.sleep(_DB_RETRY_DELAY)
             else:
                 logger.error(
-                    "Database not reachable after %d attempts: %s",
-                    _MAX_DB_RETRIES,
-                    exc,
+                    "db_unreachable",
+                    extra={"attempt": attempt, "max_retries": _MAX_DB_RETRIES, "error": str(exc)},
                 )
                 raise
 
 
 def _run_migrations() -> None:
-    """Run Alembic migrations, falling back to init_db() if not available."""
-    import logging
-
-    logger = logging.getLogger("turin-platform")
+    """Run Alembic migrations, falling back to init_db()."""
     try:
         from alembic import command  # noqa: PLC0415
         from alembic.config import Config  # noqa: PLC0415
 
         alembic_cfg = Config("alembic.ini")
         command.upgrade(alembic_cfg, "head")
-        logger.info("Alembic migrations applied successfully")
+        logger.info("migrations_applied")
     except Exception as exc:
-        logger.warning("Alembic migration failed (%s), falling back to init_db()", exc)
+        logger.warning("migrations_failed", extra={"error": str(exc)})
         init_db()
+        logger.info("init_db_fallback_complete")
 
 
 @asynccontextmanager
@@ -90,8 +90,12 @@ async def lifespan(app: FastAPI, /) -> Any:
     """Application lifespan — startup and shutdown."""
     _wait_for_db()
     _run_migrations()
+    logger.info("application_started", extra={"version": "0.1.0"})
     yield
+    logger.info("application_shutdown")
 
+
+# ── App Factory ──────────────────────────────────────────────────
 
 app = FastAPI(
     title="TurinTech Agentic Business Platform",
@@ -100,18 +104,35 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+    license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+    contact={
+        "name": "TurinTech Solutions",
+        "url": "https://turintech.solutions",
+        "email": "hello@turintech.solutions",
+    },
 )
 
-# ── Middleware ────────────────────────────────────────────────────
+# ── Middleware stack ─────────────────────────────────────────────
+# Order: RequestID → Metrics → CORS → RateLimiter → app
 
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RateLimiterMiddleware, max_requests=10, window_seconds=60)
+app.add_middleware(RateLimiterMiddleware, max_requests=int(os.getenv("RATE_LIMIT_MAX", "10")), window_seconds=60)
+
+# ── Metrics endpoint (before routers) ────────────────────────────
+register_metrics_endpoint(app)
+
+# ── Error handlers ───────────────────────────────────────────────
+from app.errors import register_error_handlers  # noqa: PLC0415
+
+register_error_handlers(app)
 
 # ── Routers ───────────────────────────────────────────────────────
 # Health stays at root for k8s probes; everything else under /api/v1.
