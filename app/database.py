@@ -25,7 +25,10 @@ def _get_engine():
     global _engine, _SessionLocal
     if _engine is None:
         url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
-        _engine = create_engine(url, pool_pre_ping=True)
+        connect_args = {}
+        if url.startswith("sqlite"):
+            connect_args["check_same_thread"] = False
+        _engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
     return _engine
 

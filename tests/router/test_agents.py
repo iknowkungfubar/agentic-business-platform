@@ -13,7 +13,10 @@ class TestAgents:
         headers = auth_headers(api_client)
         r = api_client.get("/api/v1/agents", headers=headers)
         assert r.status_code == 200
-        assert isinstance(r.json(), list)
+        data = r.json()
+        assert "items" in data
+        assert "total" in data
+        assert "page" in data
 
     def test_register_agent(self, api_client):
         """POST /api/v1/agents creates a new agent record."""

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurinTech Platform — Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <nav class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-bold text-emerald-400">TurinTech Platform</span>
+      <span class="text-xs bg-slate-700 px-2 py-1 rounded">v0.1.0</span>
+    </div>
+    <div class="flex items-center gap-4 text-sm text-slate-400">
+      <span id="status-badge" class="px-2 py-1 rounded-full text-xs bg-green-800 text-green-200">● Online</span>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <p class="text-slate-400 text-xs uppercase tracking-wide">Agents</p>
+        <p id="agent-count" class="text-3xl font-bold mt-1">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <p class="text-slate-400 text-xs uppercase tracking-wide">Healthy</p>
+        <p id="healthy-count" class="text-3xl font-bold mt-1 text-emerald-400">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <p class="text-slate-400 text-xs uppercase tracking-wide">API Calls</p>
+        <p id="api-calls" class="text-3xl font-bold mt-1">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <p class="text-slate-400 text-xs uppercase tracking-wide">Policies</p>
+        <p id="policy-count" class="text-3xl font-bold mt-1">—</p>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Agent List -->
+      <div class="lg:col-span-2 bg-slate-800 rounded-lg border border-slate-700 p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Registered Agents</h2>
+          <button onclick="loadAgents()" class="text-xs text-slate-400 hover:text-white px-2 py-1 border border-slate-600 rounded">↻ Refresh</button>
+        </div>
+        <div id="agent-list" class="space-y-2">
+          <p class="text-slate-500 text-sm">Loading agents...</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions & Logs -->
+      <div class="space-y-6">
+        <div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <h2 class="text-lg font-semibold mb-3">Quick Actions</h2>
+          <div class="space-y-2">
+            <button onclick="checkHealth()" class="w-full text-left px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm">🩺 Check All Agents</button>
+            <button onclick="loadMetrics()" class="w-full text-left px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm">📊 View Metrics</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <h2 class="text-lg font-semibold mb-3">Recent Activity</h2>
+          <div id="activity-log" class="text-xs text-slate-500 space-y-1">
+            <p>Dashboard loaded</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '/api/v1';
+
+    async function fetchJSON(url, options = {}) {
+      const r = await fetch(url, options);
+      if (!r.ok) throw new Error(`${r.status}: ${r.statusText}`);
+      return r.json();
+    }
+
+    function log(msg) {
+      const el = document.getElementById('activity-log');
+      const p = document.createElement('p');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.prepend(p);
+      if (el.children.length > 20) el.removeChild(el.lastChild);
+    }
+
+    async function loadAgents() {
+      try {
+        const data = await fetchJSON(`${API}/agents`);
+        document.getElementById('agent-count').textContent = data.total || 0;
+        const list = document.getElementById('agent-list');
+        if (!data.items || data.items.length === 0) {
+          list.innerHTML = '<p class="text-slate-500 text-sm">No agents registered.</p>';
+          return;
+        }
+        let healthy = 0;
+        list.innerHTML = data.items.map(a => {
+          if (a.status === 'healthy') healthy++;
+          const statusColor = a.status === 'healthy' ? 'text-emerald-400' : a.status === 'unreachable' ? 'text-red-400' : 'text-yellow-400';
+          return `<div class="flex justify-between items-center p-2 bg-slate-700/50 rounded">
+            <div><span class="font-medium">${a.name}</span> <span class="text-xs text-slate-400">${a.provider}</span></div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs ${statusColor}">● ${a.status}</span>
+              <span class="text-xs text-slate-500">#${a.id}</span>
+            </div>
+          </div>`;
+        }).join('');
+        document.getElementById('healthy-count').textContent = healthy;
+        log(`Loaded ${data.total} agents (${healthy} healthy)`);
+      } catch (e) {
+        document.getElementById('agent-list').innerHTML = `<p class="text-red-400 text-sm">Failed to load: ${e.message}</p>`;
+        log(`Error loading agents: ${e.message}`);
+      }
+    }
+
+    async function loadMetrics() {
+      try {
+        const r = await fetch(`/metrics`);
+        const text = await r.text();
+        const lines = text.split('\n').filter(l => l.startsWith('http_requests_total'));
+        document.getElementById('api-calls').textContent = lines.length;
+        log('Metrics loaded');
+      } catch (e) {
+        log(`Metrics error: ${e.message}`);
+      }
+    }
+
+    async function loadPolicies() {
+      try {
+        const data = await fetchJSON(`${API}/policies`);
+        document.getElementById('policy-count').textContent = data.total || 0;
+        log(`Loaded ${data.total} policies`);
+      } catch (e) {
+        log(`Policies error: ${e.message}`);
+      }
+    }
+
+    async function checkHealth() {
+      log('Checking agent health...');
+      try {
+        const data = await fetchJSON(`${API}/agents`);
+        for (const agent of (data.items || [])) {
+          await fetchJSON(`${API}/agents/${agent.id}/health`, { method: 'POST' });
+        }
+        log('Health check complete');
+        await loadAgents();
+      } catch (e) {
+        log(`Health check error: ${e.message}`);
+      }
+    }
+
+    // Initial load
+    loadAgents();
+    loadPolicies();
+    loadMetrics();
+  </script>
+</body>
+</html>

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import AgentRecord, get_db
+from app.pagination import PaginationParams, paginate
 from app.routers import get_current_user, require_role
 
 router = APIRouter(tags=["agents"])
@@ -23,14 +24,15 @@ class AgentCreateRequest(BaseModel):
 
 @router.get("")
 async def list_agents(
+    page_params: PaginationParams = Depends(),
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all agents visible to the user's organization."""
-    agents = (
-        db.query(AgentRecord).filter(AgentRecord.organization_id == user.get("org_id")).order_by(AgentRecord.name).all()
-    )
-    return [
+    """List all agents visible to the user's organization (paginated)."""
+    query = db.query(AgentRecord).filter(AgentRecord.organization_id == user.get("org_id")).order_by(AgentRecord.name)
+    total = query.count()
+    agents = query.offset(page_params.offset).limit(page_params.page_size).all()
+    items = [
         {
             "id": a.id,
             "name": a.name,
@@ -42,6 +44,7 @@ async def list_agents(
         }
         for a in agents
     ]
+    return paginate(items, total, page_params)
 
 
 @router.post("")
@@ -118,7 +121,6 @@ async def check_agent_health(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Simple reachability check
     import httpx  # noqa: PLC0415
 
     try:
