@@ -39,10 +39,12 @@ from app.telemetry import (
     get_logger,
     register_metrics_endpoint,
     setup_logging,
+    setup_tracing,
 )
 from app.tenant import TenantContextMiddleware, TenantSessionFilter
 
 setup_logging()
+setup_tracing()
 logger = get_logger("turin-platform")
 
 _MAX_DB_RETRIES = 12

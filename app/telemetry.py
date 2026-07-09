@@ -1,12 +1,12 @@
-"""Telemetry — structured logging, request IDs, Prometheus metrics.
+"""Telemetry — structured logging, request IDs, Prometheus metrics, OpenTelemetry tracing.
 
-Enterprise observability infrastructure:
-- Request ID propagation (accepts x-request-id, generates if missing)
+Enterprise observability stack:
 - Structured JSON logging with correlation IDs
+- Request ID propagation (accepts x-request-id, generates if missing)
 - Prometheus RED metrics (Rate, Errors, Duration) per endpoint
+- OpenTelemetry distributed tracing (FastAPI, HTTPX, SQLAlchemy)
 - Health-aware metrics endpoint
 """
-
 from __future__ import annotations
 
 import json
@@ -23,7 +23,88 @@ from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Histogram, generate_latest
 from prometheus_client import CONTENT_TYPE_LATEST as PROMETHEUS_CONTENT_TYPE
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+
+# ── OpenTelemetry Tracing ─────────────────────────────────────
+
+
+def setup_tracing(service_name: str = "turin-platform") -> None:
+    """Configure OpenTelemetry instrumentation for FastAPI, HTTPX, SQLAlchemy.
+
+    Exports traces via OTLP if OTEL_EXPORTER_OTLP_ENDPOINT is set,
+    otherwise uses the ConsoleSpanExporter for local debugging.
+    """
+    from opentelemetry import trace  # noqa: PLC0415
+    from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION  # noqa: PLC0415
+    from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
+
+    resource = Resource.create({
+        SERVICE_NAME: service_name,
+        SERVICE_VERSION: "0.1.0",
+    })
+    provider = TracerProvider(resource=resource)
+
+    # Configure exporter
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if otlp_endpoint:
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter  # noqa: PLC0415
+
+        exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
+
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+    else:
+        from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor  # noqa: PLC0415
+
+        provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+
+    trace.set_tracer_provider(provider)
+
+    # Instrument FastAPI
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: PLC0415
+
+        FastAPIInstrumentor().instrument()
+    except Exception:
+        pass
+
+    # Instrument HTTPX
+    try:
+        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor  # noqa: PLC0415
+
+        HTTPXClientInstrumentor().instrument()
+    except Exception:
+        pass
+
+    # Instrument SQLAlchemy
+    try:
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor  # noqa: PLC0415
+
+        SQLAlchemyInstrumentor().instrument()
+    except Exception:
+        pass
+
+
+def get_tracer(name: str = "turin-platform"):
+    """Get an OpenTelemetry tracer for manual span creation."""
+    from opentelemetry import trace  # noqa: PLC0415
+
+    return trace.get_tracer(name)
+
+
+def get_trace_parent_header() -> dict[str, str] | None:
+    """Get W3C traceparent from current span context for propagation."""
+    from opentelemetry import trace  # noqa: PLC0415
+
+    span = trace.get_current_span()
+    if not span:
+        return None
+    ctx = span.get_span_context()
+    if not ctx or not ctx.trace_id or ctx.trace_id == 0:
+        return None
+    return {
+        "traceparent": f"00-{ctx.trace_id:032x}-{ctx.span_id:016x}-01"
+    }
+
 
 # ── Structured Logging ──────────────────────────────────────────
 
@@ -73,7 +154,6 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         request.state.request_id = request_id
-        # Track API version for future version negotiation
         request.state.api_version = request.headers.get("accept-version", "v1")
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
@@ -82,7 +162,6 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
 # ── Prometheus Metrics ──────────────────────────────────────────
 
-# RED metrics: Rate, Errors, Duration per route + method
 http_requests_total = Counter(
     "http_requests_total",
     "Total HTTP requests",
@@ -121,9 +200,8 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 def register_metrics_endpoint(app: FastAPI) -> None:
     """Register the /metrics endpoint on the app."""
-
     @app.get("/metrics", include_in_schema=False)
-    async def metrics() -> Response:
+    async def metrics() -> Response:  # noqa: PLC0415
         return Response(
             content=generate_latest(),
             media_type=PROMETHEUS_CONTENT_TYPE,
