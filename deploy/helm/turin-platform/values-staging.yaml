@@ -1,0 +1,26 @@
+# TurinTech Platform — Staging overrides
+# Use: helm install -f values.yaml -f values-staging.yaml turin-platform ./deploy/helm/turin-platform
+replicaCount: 2
+
+ingress:
+  host: staging.platform.turintech.local
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+
+resources:
+  api:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 5
+
+postgresql:
+  primary:
+    persistence:
+      size: 20Gi

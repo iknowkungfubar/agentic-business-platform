@@ -1,0 +1,33 @@
+# TurinTech Platform — Production overrides
+# Use: helm install -f values.yaml -f values-production.yaml turin-platform ./deploy/helm/turin-platform
+replicaCount: 3
+
+ingress:
+  host: platform.turintech.solutions
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+resources:
+  api:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 4
+      memory: 4Gi
+
+autoscaling:
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+
+minAvailable: 2
+
+postgresql:
+  primary:
+    persistence:
+      size: 100Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
