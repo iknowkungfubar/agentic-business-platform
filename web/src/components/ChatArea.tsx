@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useChatStore';
 import { chatApi, createChatStream } from '../api/client';
 import { Send, Plus } from 'lucide-react';
 
 export function ChatArea() {
+  const { t } = useTranslation();
   const { conversationId: paramId } = useParams();
   const token = useAppStore((s) => s.token);
   const messages = useAppStore((s) => s.messages);
@@ -109,14 +111,12 @@ export function ChatArea() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <p className="text-slate-500 text-lg">Start a conversation</p>
-              <p className="text-slate-600 text-sm mt-1">
-                Type a message below to interact with the platform AI
-              </p>
+              <p className="text-slate-500 text-lg">{t('chat.emptyTitle')}</p>
+              <p className="text-slate-600 text-sm mt-1">{t('chat.emptySubtitle')}</p>
             </div>
           </div>
         )}
@@ -125,6 +125,8 @@ export function ChatArea() {
           <div
             key={msg.id}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            role="article"
+            aria-label={`${msg.role === 'user' ? 'Your' : 'AI'} message`}
           >
             <div
               className={`max-w-[75%] rounded-xl px-4 py-3 ${
@@ -145,19 +147,21 @@ export function ChatArea() {
 
       {/* Input */}
       <div className="border-t border-slate-700 px-6 py-4">
-        <div className="flex gap-3">
+        <div className="flex gap-3" role="form" aria-label="Message input">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? 'AI is responding...' : 'Type your message...'}
+            placeholder={isStreaming ? t('chat.streamingPlaceholder') : t('chat.inputPlaceholder')}
             disabled={isStreaming}
+            aria-label={t('chat.inputPlaceholder')}
             className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
+            aria-label="Send message"
             className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white rounded-xl px-4 py-3 transition-colors disabled:cursor-not-allowed"
           >
             <Send size={18} />

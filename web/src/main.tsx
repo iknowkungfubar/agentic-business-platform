@@ -8,6 +8,7 @@ import { ChatArea } from './components/ChatArea';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './index.css';
 
+import './i18n/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 createRoot(document.getElementById('root')!).render(

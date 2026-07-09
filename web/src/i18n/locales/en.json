@@ -1,0 +1,48 @@
+{
+  "app": {
+    "title": "TurinTech Platform",
+    "tagline": "Enterprise sovereign AI infrastructure"
+  },
+  "nav": {
+    "chat": "Chat",
+    "dashboard": "Dashboard",
+    "agents": "Agents",
+    "scanner": "MCP Scanner",
+    "logout": "Logout"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "organization": "Organization",
+    "signInPrompt": "Sign in to continue",
+    "createAccount": "Create an account",
+    "alreadyHaveAccount": "Already have an account? Sign In",
+    "noAccount": "Don't have an account? Register",
+    "processing": "Processing..."
+  },
+  "chat": {
+    "title": "AI Chat",
+    "newChat": "New Chat",
+    "inputPlaceholder": "Type your message...",
+    "streamingPlaceholder": "AI is responding...",
+    "emptyTitle": "Start a conversation",
+    "emptySubtitle": "Type a message below to interact with the platform AI"
+  },
+  "dashboard": {
+    "title": "Platform Dashboard",
+    "loading": "Loading dashboard...",
+    "agents": "Agents",
+    "healthy": "Healthy",
+    "policies": "Policies",
+    "scans": "Scans",
+    "noAgents": "No agents registered."
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try refreshing the page.",
+    "refresh": "Refresh Page",
+    "details": "Error details"
+  }
+}

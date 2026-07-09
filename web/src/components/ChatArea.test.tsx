@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChatArea } from './ChatArea';
 
-// Mock the store with a simple static state
 const mockState = {
   token: 'test-token',
   messages: [],
@@ -24,7 +23,6 @@ vi.mock('../store/useChatStore', () => ({
   },
 }));
 
-// Mock the API client
 vi.mock('../api/client', () => ({
   chatApi: {
     getConversations: vi.fn().mockResolvedValue([]),
@@ -53,7 +51,7 @@ describe('ChatArea', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByPlaceholderText('Type your message...')).toBeTruthy();
+    expect(screen.getByPlaceholderText('chat.inputPlaceholder')).toBeTruthy();
   });
 
   it('shows empty state', () => {
@@ -64,6 +62,6 @@ describe('ChatArea', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText('Start a conversation')).toBeTruthy();
+    expect(screen.getByText('chat.emptyTitle')).toBeTruthy();
   });
 });

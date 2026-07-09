@@ -1,0 +1,48 @@
+{
+  "app": {
+    "title": "Plateforme TurinTech",
+    "tagline": "Infrastructure IA souveraine pour entreprises"
+  },
+  "nav": {
+    "chat": "Chat",
+    "dashboard": "Tableau de bord",
+    "agents": "Agents",
+    "scanner": "Scanner MCP",
+    "logout": "Déconnexion"
+  },
+  "auth": {
+    "signIn": "Connexion",
+    "register": "S'inscrire",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "organization": "Organisation",
+    "signInPrompt": "Connectez-vous pour continuer",
+    "createAccount": "Créer un compte",
+    "alreadyHaveAccount": "Déjà un compte ? Connectez-vous",
+    "noAccount": "Pas de compte ? Inscrivez-vous",
+    "processing": "Traitement..."
+  },
+  "chat": {
+    "title": "Chat IA",
+    "newChat": "Nouveau chat",
+    "inputPlaceholder": "Tapez votre message...",
+    "streamingPlaceholder": "L'IA répond...",
+    "emptyTitle": "Commencez une conversation",
+    "emptySubtitle": "Tapez un message pour interagir avec l'IA de la plateforme"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "loading": "Chargement...",
+    "agents": "Agents",
+    "healthy": "En santé",
+    "policies": "Politiques",
+    "scans": "Analyses",
+    "noAgents": "Aucun agent enregistré."
+  },
+  "error": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur inattendue s'est produite. Veuillez rafraîchir la page.",
+    "refresh": "Rafraîchir",
+    "details": "Détails de l'erreur"
+  }
+}
