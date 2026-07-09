@@ -41,7 +41,6 @@ class TestAPI:
 
     @pytest.fixture(autouse=True)
     def _db_setup(self, tmp_path):
-        import os
 
         os.environ["DISABLE_RATE_LIMIT"] = "true"
         old_url = os.environ.get("DATABASE_URL", "")
