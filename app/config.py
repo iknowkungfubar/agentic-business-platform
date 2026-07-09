@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     # ── Database ──────────────────────────────────────────────────
     database_url: str = "sqlite:///./turin.db"
+    database_url_primary: str = ""
+    database_url_replica: str = ""
 
     # ── Auth ──────────────────────────────────────────────────────
     jwt_secret: str = "change-me-in-production"

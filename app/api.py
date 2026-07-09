@@ -33,6 +33,7 @@ from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 from app.routers.tenant import router as tenant_router
+from app.routers.workflows import router as workflows_router
 from app.ws import manager as ws_manager
 
 from app.middleware import TokenBucketRateLimiter
@@ -58,7 +59,7 @@ def _wait_for_db() -> None:
     """Retry connecting to the database with backoff for PostgreSQL startup race."""
     for attempt in range(1, _MAX_DB_RETRIES + 1):
         try:
-            from app.database import _get_engine  # noqa: PLC0415
+            from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
 
             conn = _get_engine().connect()
             conn.execute(text("SELECT 1"))
@@ -195,3 +196,4 @@ app.include_router(mcp_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
 app.include_router(sbom_router, prefix="/api/v1")
 app.include_router(tenant_router, prefix="")
+app.include_router(workflows_router, prefix="")

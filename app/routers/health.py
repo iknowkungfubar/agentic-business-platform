@@ -26,7 +26,7 @@ async def readiness():
 
     Checks database connectivity. Used by Kubernetes readinessProbe.
     """
-    from app.database import _get_engine  # noqa: PLC0415
+    from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
 
     try:
         conn = _get_engine().connect()
@@ -58,7 +58,7 @@ async def deep_health():
     Checks database, migrations status, and downstream services.
     Used by monitoring dashboards and alerting.
     """
-    from app.database import _get_engine  # noqa: PLC0415
+    from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
 
     checks = {
         "database": False,

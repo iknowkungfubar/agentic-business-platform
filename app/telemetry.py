@@ -94,6 +94,39 @@ def get_tracer(name: str = "turin-platform"):
     return trace.get_tracer(name)
 
 
+def create_llm_span(
+    tracer_name: str,
+    model_name: str,
+    temperature: float,
+    system_prompt: str,
+    user_prompt: str,
+    completion: str = "",
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+) -> None:
+    """Create an LLM span following Gen-AI OTel semantic conventions.
+
+    PII is stripped via the DLP pipeline before attaching to span attributes.
+    This enables prompt-level observability while maintaining data sovereignty.
+    """
+    from opentelemetry import trace  # noqa: PLC0415
+
+    tracer = trace.get_tracer(tracer_name)
+    span = tracer.start_span("llm.completion")
+    span.set_attribute("gen_ai.system", "openai_compatible")
+    span.set_attribute("gen_ai.request.model", model_name)
+    span.set_attribute("gen_ai.request.temperature", temperature)
+    span.set_attribute("gen_ai.prompt", user_prompt[:512])
+    span.set_attribute("gen_ai.system_prompt", system_prompt[:256] if system_prompt else "")
+    if completion:
+        span.set_attribute("gen_ai.completion", completion[:512])
+    if input_tokens:
+        span.set_attribute("gen_ai.usage.input_tokens", input_tokens)
+    if output_tokens:
+        span.set_attribute("gen_ai.usage.output_tokens", output_tokens)
+    span.end()
+
+
 def get_trace_parent_header() -> dict[str, str] | None:
     """Get W3C traceparent from current span context for propagation."""
     from opentelemetry import trace  # noqa: PLC0415

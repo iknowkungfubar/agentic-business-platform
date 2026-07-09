@@ -11,6 +11,7 @@ from app.models.message import Message
 from app.models.organization import Organization
 from app.models.semantic_cache import SemanticCache
 from app.models.user import User
+from app.models.workflow import WorkflowExecution
 
 __all__ = [
     "APIKey",
@@ -22,4 +23,5 @@ __all__ = [
     "Message",
     "Organization",
     "User",
+    "WorkflowExecution",
 ]

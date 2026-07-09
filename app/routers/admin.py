@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User as UserModel
+from app.models import Organization, User as UserModel
 from app.models import AgentRecord, AuditEvent
 from app.models.user import UserRole
 from app.routers import RequireRole, get_current_user
@@ -112,3 +112,24 @@ async def audit_log(
         }
         for e in events
     ]
+
+
+@router.post("/organizations/{org_id}/legal-hold")
+async def toggle_legal_hold(
+    org_id: int,
+    under_hold: bool = True,
+    user: dict = Depends(RequireRole(UserRole.SUPERADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Toggle legal hold for an organization (SUPERADMIN only).
+
+    When under legal hold, the data retention cron will skip permanent
+    deletion of this organization's records, preserving WORM audit logs
+    and chat histories during litigation.
+    """
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    org.under_legal_hold = 1 if under_hold else 0
+    db.commit()
+    return {"organization_id": org_id, "under_legal_hold": under_hold}

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
-from app.database import _get_engine
+from app.database import _get_write_engine as _get_engine
 
 router = APIRouter(tags=["tenant"])
 

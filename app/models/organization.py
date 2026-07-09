@@ -25,8 +25,11 @@ class Organization(Base):
     # ── White-label Branding ──────────────────────────────────────
     custom_domain = Column(String(255), default="", index=True)
     logo_url = Column(String(512), default="")
-    primary_color_hex = Column(String(7), default="#10b981")  # emerald-500
-    secondary_color_hex = Column(String(7), default="#6366f1")  # indigo-500
+    primary_color_hex = Column(String(7), default="#10b981")
+    secondary_color_hex = Column(String(7), default="#6366f1")
+
+    # ── Compliance ───────────────────────────────────────────────
+    under_legal_hold = Column(Integer, default=0)
 
     users = relationship("User", back_populates="organization")
     agents = relationship("AgentRecord", back_populates="organization")

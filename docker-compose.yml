@@ -77,6 +77,26 @@ services:
       timeout: 3s
       retries: 5
 
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    container_name: turin-pgbouncer
+    restart: unless-stopped
+    environment:
+      - PGBOUNCER_DATABASE=turin
+      - PGBOUNCER_PORT=6432
+      - POSTGRESQL_HOST=db
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_USERNAME=turin
+      - POSTGRESQL_PASSWORD=${PGPASSWORD:-turin}
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=500
+      - PGBOUNCER_DEFAULT_POOL_SIZE=50
+    ports:
+      - "6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # ── Monitoring (optional profile) ──────────────────────────
   prometheus:
     image: prom/prometheus:latest
