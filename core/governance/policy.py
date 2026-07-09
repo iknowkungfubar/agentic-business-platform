@@ -81,7 +81,10 @@ class PolicyEngine:
                 matched.append(rule)
 
         if not matched:
-            return EvaluationResult(effect=RuleEffect.ALLOW, details="No matching rules — allowed by default")
+            return EvaluationResult(
+                effect=RuleEffect.ALLOW,
+                details="No matching rules — allowed by default",
+            )
 
         # DENY rules take precedence over ALLOW/AUDIT at the same priority
         deny_rules = [r for r in matched if r.effect == RuleEffect.DENY]

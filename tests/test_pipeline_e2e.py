@@ -6,7 +6,6 @@ ingest → chunk → classify → route.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 
@@ -61,7 +60,12 @@ class TestPipelineE2E:
             assert intent.intent_type is not None
             assert intent.confidence > 0
             # The document discusses analysis, not code generation
-            assert intent.intent_type in ("analysis", "summarization", "question_answering", "data_extraction")
+            assert intent.intent_type in (
+                "analysis",
+                "summarization",
+                "question_answering",
+                "data_extraction",
+            )
 
         # Route to model
         selector = ModelSelector()

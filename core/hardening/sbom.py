@@ -53,7 +53,12 @@ class SBOMResult:
 # Known vulnerability database (simplified — in production, query OSV.dev API)
 _KNOWN_VULNERABILITIES: dict[str, list[dict[str, Any]]] = {
     "old-package": [
-        {"cve": "CVE-2024-0001", "max_version": "1.0.0", "severity": "high", "desc": "Remote code execution in old-package"},
+        {
+            "cve": "CVE-2024-0001",
+            "max_version": "1.0.0",
+            "severity": "high",
+            "desc": "Remote code execution in old-package",
+        },
     ],
 }
 
@@ -123,7 +128,7 @@ class SBOMGenerator:
             if stripped.startswith("dependencies = ["):
                 in_deps = True
                 bracket_depth += stripped.count("[") - stripped.count("]")
-                deps_text += stripped[stripped.index("["):] + "\n"
+                deps_text += stripped[stripped.index("[") :] + "\n"
             elif in_deps:
                 bracket_depth += stripped.count("[") - stripped.count("]")
                 deps_text += stripped + "\n"
@@ -134,8 +139,9 @@ class SBOMGenerator:
             return deps
 
         # Parse individual dependency strings
-        dep_pattern = re.compile(r'"([^"]+)"')
-        dep_entries = re.findall(r'"([^"]+)"', deps_text.split("=", 1)[-1] if "=" in deps_text else deps_text)
+        dep_entries = re.findall(
+            r'"([^"]+)"', deps_text.split("=", 1)[-1] if "=" in deps_text else deps_text
+        )
 
         for entry in dep_entries:
             # Parse "package>=version" or "package==version" or "package"
@@ -161,11 +167,13 @@ class SBOMGenerator:
             )
             for m in package_pattern.finditer(content):
                 if m.group(1) not in {d.name for d in deps}:
-                    deps.append(Dependency(
-                        name=m.group(1),
-                        version=m.group(2),
-                        source=m.group(3),
-                    ))
+                    deps.append(
+                        Dependency(
+                            name=m.group(1),
+                            version=m.group(2),
+                            source=m.group(3),
+                        )
+                    )
 
         return deps
 
@@ -179,16 +187,20 @@ class SBOMGenerator:
             if dep.name in _KNOWN_VULNERABILITIES:
                 for known_vuln in _KNOWN_VULNERABILITIES[dep.name]:
                     if dep.version <= known_vuln["max_version"]:
-                        vulns.append(Vulnerability(
-                            package=dep.name,
-                            version=dep.version,
-                            cve_id=known_vuln["cve"],
-                            severity=known_vuln["severity"],
-                            description=known_vuln["desc"],
-                        ))
+                        vulns.append(
+                            Vulnerability(
+                                package=dep.name,
+                                version=dep.version,
+                                cve_id=known_vuln["cve"],
+                                severity=known_vuln["severity"],
+                                description=known_vuln["desc"],
+                            )
+                        )
         return vulns
 
-    def export_spdx_json(self, result: SBOMResult, output_path: str | Path) -> dict[str, Any]:
+    def export_spdx_json(
+        self, result: SBOMResult, output_path: str | Path
+    ) -> dict[str, Any]:
         """Export SBOM as SPDX 2.3 JSON."""
         packages = [
             {

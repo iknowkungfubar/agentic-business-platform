@@ -68,7 +68,10 @@ class PolicyTemplates:
                 name="gdpr_data_minimization",
                 description="Art. 5: Only collect data necessary for the specified purpose",
                 effect=RuleEffect.DENY,
-                conditions={"action_type": "data_collection", "minimization_verified": False},
+                conditions={
+                    "action_type": "data_collection",
+                    "minimization_verified": False,
+                },
                 priority=10,
             ),
             PolicyRule(
@@ -123,7 +126,10 @@ class PolicyTemplates:
                 name="eu_ai_transparency",
                 description="Art. 13: Users must be informed they interact with AI",
                 effect=RuleEffect.DENY,
-                conditions={"action_type": "user_interaction", "disclosure_shown": False},
+                conditions={
+                    "action_type": "user_interaction",
+                    "disclosure_shown": False,
+                },
                 priority=8,
             ),
         ]

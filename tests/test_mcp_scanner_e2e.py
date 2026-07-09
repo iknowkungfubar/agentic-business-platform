@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -11,7 +10,6 @@ from core.security.mcp_scanner import (
     FindingSeverity,
     MCPScanner,
     ScanTarget,
-    ScanResult,
 )
 
 
@@ -26,16 +24,20 @@ class TestMCPScannerE2E:
         assert result.reachable is False
         # Should have at least one finding about unreachability
         assert len(result.findings) > 0
-        critical_findings = [f for f in result.findings if f.severity == FindingSeverity.CRITICAL]
+        critical_findings = [
+            f for f in result.findings if f.severity == FindingSeverity.CRITICAL
+        ]
         assert any("unreachable" in f.description.lower() for f in critical_findings)
 
     def test_mcp_scanner_produces_report(self):
         """Scanner should produce a structured report."""
         scanner = MCPScanner(timeout=1.0)
-        results = scanner.scan_multi([
-            "http://127.0.0.1:1",
-            "http://127.0.0.1:2",
-        ])
+        results = scanner.scan_multi(
+            [
+                "http://127.0.0.1:1",
+                "http://127.0.0.1:2",
+            ]
+        )
         report = scanner.generate_report(results)
 
         assert "scan_summary" in report

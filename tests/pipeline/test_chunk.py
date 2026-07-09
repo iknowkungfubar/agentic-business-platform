@@ -45,7 +45,10 @@ class TestTextChunker:
 
     def test_chunks_reference_source_document(self):
         """Each chunk should reference its source document."""
-        doc = Document(source="/path/to/doc.txt", content="First paragraph.\n\nSecond paragraph.\n\nThird paragraph.")
+        doc = Document(
+            source="/path/to/doc.txt",
+            content="First paragraph.\n\nSecond paragraph.\n\nThird paragraph.",
+        )
         chunker = TextChunker(chunk_size=500, overlap=20)
         chunks = chunker.chunk(doc)
         for chunk in chunks:

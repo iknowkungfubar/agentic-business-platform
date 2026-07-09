@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 
 import pytest
 
 from core.governance.policy import PolicyEngine, PolicyRule, RuleEffect
 from core.governance.templates import PolicyTemplates
 from core.governance.eval import AgentEvalSuite, EvalCriterion, Scorecard
-from core.governance.redteam import RedTeamScheduler, RedTeamTest
+from core.governance.redteam import RedTeamScheduler
 
 
 class TestGovernanceE2E:
@@ -19,48 +18,69 @@ class TestGovernanceE2E:
         """Define policies, evaluate an action, run eval, schedule red-team."""
         # 1. Create policy engine with CMMC-derived rules
         engine = PolicyEngine()
-        engine.add_rule(PolicyRule(
-            name="block_data_exfiltration",
-            description="Block agent actions that access sensitive data without approval",
-            effect=RuleEffect.DENY,
-            conditions={"action_type": "data_access", "resource_type": "sensitive_document"},
-            priority=10,
-        ))
-        engine.add_rule(PolicyRule(
-            name="audit_all_inferences",
-            description="All model inference must be audited",
-            effect=RuleEffect.AUDIT,
-            conditions={"action_type": "inference"},
-        ))
+        engine.add_rule(
+            PolicyRule(
+                name="block_data_exfiltration",
+                description="Block agent actions that access sensitive data without approval",
+                effect=RuleEffect.DENY,
+                conditions={
+                    "action_type": "data_access",
+                    "resource_type": "sensitive_document",
+                },
+                priority=10,
+            )
+        )
+        engine.add_rule(
+            PolicyRule(
+                name="audit_all_inferences",
+                description="All model inference must be audited",
+                effect=RuleEffect.AUDIT,
+                conditions={"action_type": "inference"},
+            )
+        )
 
         # 2. Evaluate an action — should be DENIED
-        action = {"action_type": "data_access", "resource_type": "sensitive_document", "agent_id": "agent-1"}
+        action = {
+            "action_type": "data_access",
+            "resource_type": "sensitive_document",
+            "agent_id": "agent-1",
+        }
         result = engine.evaluate(action)
         assert result.effect == RuleEffect.DENY
         assert result.matched_rule == "block_data_exfiltration"
 
         # 3. Evaluate an allowed action — should PASS or AUDIT
-        action2 = {"action_type": "health_check", "resource_type": "agent", "agent_id": "agent-1"}
+        action2 = {
+            "action_type": "health_check",
+            "resource_type": "agent",
+            "agent_id": "agent-1",
+        }
         result2 = engine.evaluate(action2)
         assert result2.effect in (RuleEffect.ALLOW, RuleEffect.AUDIT)
 
         # 4. Create eval suite and score an agent output
         suite = AgentEvalSuite()
-        suite.add_criterion(EvalCriterion(
-            name="correctness",
-            description="Output matches expected result",
-            weight=0.5,
-        ))
-        suite.add_criterion(EvalCriterion(
-            name="safety",
-            description="Output contains no harmful content",
-            weight=0.3,
-        ))
-        suite.add_criterion(EvalCriterion(
-            name="compliance",
-            description="Output complies with regulatory policies",
-            weight=0.2,
-        ))
+        suite.add_criterion(
+            EvalCriterion(
+                name="correctness",
+                description="Output matches expected result",
+                weight=0.5,
+            )
+        )
+        suite.add_criterion(
+            EvalCriterion(
+                name="safety",
+                description="Output contains no harmful content",
+                weight=0.3,
+            )
+        )
+        suite.add_criterion(
+            EvalCriterion(
+                name="compliance",
+                description="Output complies with regulatory policies",
+                weight=0.2,
+            )
+        )
 
         scorecard = suite.evaluate(
             agent_id="agent-1",
@@ -91,7 +111,10 @@ class TestGovernanceE2E:
         result = scheduler.complete_test(
             test_id=test.id,
             passed=True,
-            findings=["Agent correctly rejected injected prompt", "Blocked unauthorized data access"],
+            findings=[
+                "Agent correctly rejected injected prompt",
+                "Blocked unauthorized data access",
+            ],
         )
 
         assert result.status == "completed"
@@ -112,20 +135,24 @@ class TestGovernanceE2E:
     def test_deny_overrides_allow(self):
         """DENY rules should take precedence over ALLOW rules."""
         engine = PolicyEngine()
-        engine.add_rule(PolicyRule(
-            name="allow_all",
-            description="Allow all actions",
-            effect=RuleEffect.ALLOW,
-            conditions={},
-            priority=1,
-        ))
-        engine.add_rule(PolicyRule(
-            name="deny_data_access",
-            description="Deny data access actions",
-            effect=RuleEffect.DENY,
-            conditions={"action_type": "data_access"},
-            priority=10,
-        ))
+        engine.add_rule(
+            PolicyRule(
+                name="allow_all",
+                description="Allow all actions",
+                effect=RuleEffect.ALLOW,
+                conditions={},
+                priority=1,
+            )
+        )
+        engine.add_rule(
+            PolicyRule(
+                name="deny_data_access",
+                description="Deny data access actions",
+                effect=RuleEffect.DENY,
+                conditions={"action_type": "data_access"},
+                priority=10,
+            )
+        )
 
         action = {"action_type": "data_access", "resource_type": "customer_db"}
         result = engine.evaluate(action)
@@ -139,7 +166,9 @@ class TestGovernanceE2E:
         suite.add_criterion(EvalCriterion("safety", weight=0.5))
 
         scorecard = suite.evaluate(
-            agent_id="agent-1", task="test", output="test",
+            agent_id="agent-1",
+            task="test",
+            output="test",
             scores={"correctness": 1.0, "safety": 0.5},
         )
 
@@ -152,7 +181,9 @@ class TestGovernanceE2E:
         t2 = scheduler.schedule("agent-1", "data_extraction", "Test 2")
 
         scheduler.complete_test(t1.id, passed=True, findings=["OK"])
-        scheduler.complete_test(t2.id, passed=False, findings=["Failed to block extraction"])
+        scheduler.complete_test(
+            t2.id, passed=False, findings=["Failed to block extraction"]
+        )
 
         history = scheduler.get_history(agent_id="agent-1")
         assert len(history) == 2

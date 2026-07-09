@@ -9,7 +9,6 @@ Four model tiers:
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from core.router.intent import IntentResult
@@ -49,10 +48,25 @@ class ModelSelector:
 
     # Content complexity indicators → tier upgrade
     _COMPLEXITY_KEYWORDS: dict[str, list[str]] = {
-        "t3": ["distributed", "concurrent", "optimization", "architecture",
-               "algorithm", "protocol", "encryption", "authentication"],
-        "t4": ["formal verification", "theorem", "proof", "complex analysis",
-               "multi-agent", "autonomous", "planning"],
+        "t3": [
+            "distributed",
+            "concurrent",
+            "optimization",
+            "architecture",
+            "algorithm",
+            "protocol",
+            "encryption",
+            "authentication",
+        ],
+        "t4": [
+            "formal verification",
+            "theorem",
+            "proof",
+            "complex analysis",
+            "multi-agent",
+            "autonomous",
+            "planning",
+        ],
     }
 
     def select(self, intent: IntentResult, content: str) -> RouteResult:
@@ -96,13 +110,15 @@ class ModelSelector:
             if any(kw in content_lower for kw in keywords):
                 if self._tier_index(tier) > self._tier_index(final_tier):
                     final_tier = tier
-                    reason_parts.append(f"Complexity keywords detected")
+                    reason_parts.append("Complexity keywords detected")
 
         reason_parts.append(f"confidence={intent.confidence}")
         reason = " — ".join(reason_parts)
 
         # Confidence: base from intent, reduced if we upgraded tiers
-        confidence = intent.confidence * (1.0 - 0.1 * abs(self._tier_index(final_tier) - self._tier_index(base_tier)))
+        confidence = intent.confidence * (
+            1.0 - 0.1 * abs(self._tier_index(final_tier) - self._tier_index(base_tier))
+        )
 
         return RouteResult(
             model_tier=final_tier,

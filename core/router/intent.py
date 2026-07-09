@@ -14,7 +14,6 @@ Classifies text into one of several intent categories:
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 
@@ -36,48 +35,151 @@ class IntentClassifier:
 
     # Intent patterns: (intent_type, keywords, weight)
     _PATTERNS: list[tuple[str, list[str], float]] = [
-        ("code_generation", [
-            "def ", "class ", "function", "import ", "return ",
-            "const ", "let ", "var ", "=>", "->", "::", "<T>",
-            "#include", "impl ", "fn ", "pub ", "async ", "await",
-            "__name__", "__main__", "if __name__", "sys.argv",
-        ], 0.8),
-        ("code_generation", [
-            "write code", "implement", "function that", "method that",
-            "generate code", "script", "program",
-        ], 0.7),
-        ("summarization", [
-            "summarize", "summary", "tl;dr", "in short",
-            "briefly", "overview of", "key points",
-            "executive summary",
-        ], 0.8),
-        ("question_answering", [
-            "what is", "how to", "why does", "when did",
-            "where can", "who is", "which one", "explain",
-            "define", "tell me about", "meaning of",
-        ], 0.7),
-        ("data_extraction", [
-            "extract", "parse", "scrape", "collect",
-            "gather data", "pull data", "get all", "find all",
-        ], 0.7),
-        ("analysis", [
-            "analyze", "analysis", "evaluate", "compare",
-            "assess", "metrics", "statistics", "correlation",
-            "trend", "pattern", "distribution",
-        ], 0.7),
-        ("search", [
-            "search for", "find", "look up", "query",
-            "retrieve", "fetch", "get information about",
-        ], 0.7),
-        ("classification", [
-            "classify", "categorize", "label", "sort",
-            "organize", "tag", "assign category",
-        ], 0.7),
-        ("creative_writing", [
-            "write a story", "poem", "creative", "narrative",
-            "fiction", "dialogue", "script", "short story",
-            "write a tale", "once upon a time",
-        ], 0.7),
+        (
+            "code_generation",
+            [
+                "def ",
+                "class ",
+                "function",
+                "import ",
+                "return ",
+                "const ",
+                "let ",
+                "var ",
+                "=>",
+                "->",
+                "::",
+                "<T>",
+                "#include",
+                "impl ",
+                "fn ",
+                "pub ",
+                "async ",
+                "await",
+                "__name__",
+                "__main__",
+                "if __name__",
+                "sys.argv",
+            ],
+            0.8,
+        ),
+        (
+            "code_generation",
+            [
+                "write code",
+                "implement",
+                "function that",
+                "method that",
+                "generate code",
+                "script",
+                "program",
+            ],
+            0.7,
+        ),
+        (
+            "summarization",
+            [
+                "summarize",
+                "summary",
+                "tl;dr",
+                "in short",
+                "briefly",
+                "overview of",
+                "key points",
+                "executive summary",
+            ],
+            0.8,
+        ),
+        (
+            "question_answering",
+            [
+                "what is",
+                "how to",
+                "why does",
+                "when did",
+                "where can",
+                "who is",
+                "which one",
+                "explain",
+                "define",
+                "tell me about",
+                "meaning of",
+            ],
+            0.7,
+        ),
+        (
+            "data_extraction",
+            [
+                "extract",
+                "parse",
+                "scrape",
+                "collect",
+                "gather data",
+                "pull data",
+                "get all",
+                "find all",
+            ],
+            0.7,
+        ),
+        (
+            "analysis",
+            [
+                "analyze",
+                "analysis",
+                "evaluate",
+                "compare",
+                "assess",
+                "metrics",
+                "statistics",
+                "correlation",
+                "trend",
+                "pattern",
+                "distribution",
+            ],
+            0.7,
+        ),
+        (
+            "search",
+            [
+                "search for",
+                "find",
+                "look up",
+                "query",
+                "retrieve",
+                "fetch",
+                "get information about",
+            ],
+            0.7,
+        ),
+        (
+            "classification",
+            [
+                "classify",
+                "categorize",
+                "label",
+                "sort",
+                "organize",
+                "tag",
+                "assign category",
+            ],
+            0.7,
+        ),
+        (
+            "creative_writing",
+            [
+                "write a story",
+                "poem",
+                "creative",
+                "narrative",
+                "fiction",
+                "dialogue",
+                "script",
+                "short story",
+                "write a tale",
+                "once upon a time",
+            ],
+            0.7,
+        ),
     ]
 
     def classify(self, text: str) -> IntentResult:

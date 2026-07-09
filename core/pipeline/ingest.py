@@ -32,8 +32,20 @@ class DocumentIngester:
     """
 
     SUPPORTED_EXTENSIONS = {
-        ".txt", ".md", ".pdf", ".py", ".js", ".ts", ".rs", ".java",
-        ".json", ".yaml", ".yml", ".csv", ".html", ".xml",
+        ".txt",
+        ".md",
+        ".pdf",
+        ".py",
+        ".js",
+        ".ts",
+        ".rs",
+        ".java",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".csv",
+        ".html",
+        ".xml",
     }
 
     def ingest(self, path: str) -> Document:
@@ -96,6 +108,7 @@ class DocumentIngester:
         """
         try:
             import fitz  # PyMuPDF
+
             doc = fitz.open(str(filepath))
             pages = []
             for page in doc:

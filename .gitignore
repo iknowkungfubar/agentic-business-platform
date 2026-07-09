@@ -17,3 +17,12 @@ Thumbs.db
 # Project
 acp/.venv/
 acp/*.db
+.env
+.env.*
+dist/
+*.egg
+*.egg-info/
+.coverage*
+coverage/
+htmlcov/
+.pytest_cache/

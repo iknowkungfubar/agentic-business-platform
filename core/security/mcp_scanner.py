@@ -106,20 +106,24 @@ class MCPScanner:
         target = ScanTarget(url)
         result = ScanResult(url=url, is_https=target.is_https)
 
-        result.findings.append(Finding(
-            severity=FindingSeverity.INFO,
-            description=f"Scanning MCP server at {url}",
-            detail=f"Host: {target.hostname}, Port: {target.port}, Scheme: {target.scheme}",
-        ))
+        result.findings.append(
+            Finding(
+                severity=FindingSeverity.INFO,
+                description=f"Scanning MCP server at {url}",
+                detail=f"Host: {target.hostname}, Port: {target.port}, Scheme: {target.scheme}",
+            )
+        )
 
         # Check HTTPS
         if not target.is_https:
-            result.findings.append(Finding(
-                severity=FindingSeverity.HIGH,
-                description="MCP server does not use HTTPS",
-                detail="Plain HTTP connections are vulnerable to MITM attacks and data interception",
-                recommendation="Enforce HTTPS with a valid TLS certificate for all MCP endpoints",
-            ))
+            result.findings.append(
+                Finding(
+                    severity=FindingSeverity.HIGH,
+                    description="MCP server does not use HTTPS",
+                    detail="Plain HTTP connections are vulnerable to MITM attacks and data interception",
+                    recommendation="Enforce HTTPS with a valid TLS certificate for all MCP endpoints",
+                )
+            )
 
         # Probe the server
         try:
@@ -138,44 +142,54 @@ class MCPScanner:
             result.requires_auth = bool(www_auth)
 
             if not www_auth:
-                result.findings.append(Finding(
-                    severity=FindingSeverity.HIGH,
-                    description="MCP server does not require authentication",
-                    detail="No WWW-Authenticate header found. Server may be accessible without credentials",
-                    recommendation="Enable authentication (API key, OAuth, or mTLS) for all MCP endpoints",
-                ))
+                result.findings.append(
+                    Finding(
+                        severity=FindingSeverity.HIGH,
+                        description="MCP server does not require authentication",
+                        detail="No WWW-Authenticate header found. Server may be accessible without credentials",
+                        recommendation="Enable authentication (API key, OAuth, or mTLS) for all MCP endpoints",
+                    )
+                )
             else:
-                result.findings.append(Finding(
-                    severity=FindingSeverity.INFO,
-                    description=f"Authentication required: {www_auth}",
-                ))
+                result.findings.append(
+                    Finding(
+                        severity=FindingSeverity.INFO,
+                        description=f"Authentication required: {www_auth}",
+                    )
+                )
 
             # Check server version disclosure
             if result.server_header:
                 for unsafe in self._UNSAFE_SERVERS:
                     if unsafe in result.server_header.lower():
-                        result.findings.append(Finding(
-                            severity=FindingSeverity.MEDIUM,
-                            description=f"Known vulnerable server version: {result.server_header}",
-                            detail=f"Server header reveals {result.server_header}, which has known vulnerabilities",
-                            recommendation="Update to the latest version or hide server version information",
-                        ))
+                        result.findings.append(
+                            Finding(
+                                severity=FindingSeverity.MEDIUM,
+                                description=f"Known vulnerable server version: {result.server_header}",
+                                detail=f"Server header reveals {result.server_header}, which has known vulnerabilities",
+                                recommendation="Update to the latest version or hide server version information",
+                            )
+                        )
                         break
                 else:
-                    result.findings.append(Finding(
-                        severity=FindingSeverity.INFO,
-                        description=f"Server: {result.server_header}",
-                    ))
+                    result.findings.append(
+                        Finding(
+                            severity=FindingSeverity.INFO,
+                            description=f"Server: {result.server_header}",
+                        )
+                    )
 
             # Check for CORS misconfiguration
             acao = resp.headers.get("Access-Control-Allow-Origin", "")
             if acao == "*":
-                result.findings.append(Finding(
-                    severity=FindingSeverity.MEDIUM,
-                    description="MCP server has permissive CORS policy",
-                    detail="Access-Control-Allow-Origin: * allows any website to make requests to this server",
-                    recommendation="Restrict CORS to specific trusted origins instead of using wildcard",
-                ))
+                result.findings.append(
+                    Finding(
+                        severity=FindingSeverity.MEDIUM,
+                        description="MCP server has permissive CORS policy",
+                        detail="Access-Control-Allow-Origin: * allows any website to make requests to this server",
+                        recommendation="Restrict CORS to specific trusted origins instead of using wildcard",
+                    )
+                )
 
         except urllib.error.HTTPError as e:
             # Server responded with an error — it's reachable
@@ -187,20 +201,26 @@ class MCPScanner:
             if e.code in (401, 403):
                 result.requires_auth = True
                 www_auth = e.headers.get("WWW-Authenticate", "")
-                result.findings.append(Finding(
-                    severity=FindingSeverity.INFO,
-                    description=f"Authentication required (HTTP {e.code})",
-                    detail=f"WWW-Authenticate: {www_auth}" if www_auth else "Access denied",
-                ))
+                result.findings.append(
+                    Finding(
+                        severity=FindingSeverity.INFO,
+                        description=f"Authentication required (HTTP {e.code})",
+                        detail=f"WWW-Authenticate: {www_auth}"
+                        if www_auth
+                        else "Access denied",
+                    )
+                )
 
         except urllib.error.URLError:
             result.reachable = False
-            result.findings.append(Finding(
-                severity=FindingSeverity.CRITICAL,
-                description="MCP server is unreachable",
-                detail="Server did not respond within the timeout period",
-                recommendation="Verify the server is running and the URL is correct",
-            ))
+            result.findings.append(
+                Finding(
+                    severity=FindingSeverity.CRITICAL,
+                    description="MCP server is unreachable",
+                    detail="Server did not respond within the timeout period",
+                    recommendation="Verify the server is running and the URL is correct",
+                )
+            )
 
         return result
 
@@ -236,13 +256,15 @@ class MCPScanner:
         all_findings: list[dict] = []
         for result in results:
             for finding in result.findings:
-                all_findings.append({
-                    "url": result.url,
-                    "severity": finding.severity.value,
-                    "description": finding.description,
-                    "detail": finding.detail,
-                    "recommendation": finding.recommendation,
-                })
+                all_findings.append(
+                    {
+                        "url": result.url,
+                        "severity": finding.severity.value,
+                        "description": finding.description,
+                        "detail": finding.detail,
+                        "recommendation": finding.recommendation,
+                    }
+                )
 
         # Count by severity
         severity_counts: dict[str, int] = {}

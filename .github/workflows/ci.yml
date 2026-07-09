@@ -52,6 +52,10 @@ jobs:
         run: uv sync --group dev
       - name: Check dependencies
         run: uv run python -m core.hardening.sbom
+      - name: Vulnerability audit
+        run: uv pip install pip-audit && uv run pip-audit --strict 2>&1 | tail -20 || true
+      - name: Secrets scan
+        run: uv pip install detect-secrets && uv run detect-secrets scan core/ 2>&1 | tail -20 || true
       - name: List dependencies
         run: uv pip list
 
