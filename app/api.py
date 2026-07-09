@@ -23,6 +23,7 @@ from app.routers.eval import router as eval_router
 from app.routers.health import router as health_router
 from app.routers.ingest import router as ingest_router
 from app.routers.mcp import router as mcp_router
+from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 
 _MAX_DB_RETRIES = 12
@@ -120,4 +121,5 @@ app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(mcp_router, prefix="/api/v1")
+app.include_router(policies_router, prefix="/api/v1")
 app.include_router(sbom_router, prefix="/api/v1")
