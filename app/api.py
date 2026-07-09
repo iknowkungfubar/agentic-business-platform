@@ -32,7 +32,7 @@ from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 
-# ── Telemetry (structured logging, metrics) ──────────────────────
+from app.middleware import RateLimiterMiddleware
 from app.telemetry import (
     MetricsMiddleware,
     RequestIDMiddleware,
@@ -40,6 +40,7 @@ from app.telemetry import (
     register_metrics_endpoint,
     setup_logging,
 )
+from app.tenant import TenantContextMiddleware, TenantSessionFilter
 
 setup_logging()
 logger = get_logger("turin-platform")
@@ -123,9 +124,10 @@ app = FastAPI(
 )
 
 # ── Middleware stack ─────────────────────────────────────────────
-# Order: RequestID → Metrics → CORS → RateLimiter → app
+# Order: RequestID → Tenant → Metrics → CORS → RateLimiter → app
 
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(TenantContextMiddleware)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,

@@ -12,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
+from app.tenant import TenantSessionFilter
 
 _engine: Any = None
 _SessionLocal: Any = None
@@ -41,10 +42,19 @@ def reset_engine():
     _SessionLocal = None
 
 
+_tenant_filter = TenantSessionFilter()
+
+
+def set_tenant_context(org_id: int | None) -> None:
+    """Set the tenant context for the current request."""
+    _tenant_filter.set_tenant(org_id)
+
+
 def get_db():
-    """Get a database session."""
+    """Get a database session with tenant context applied."""
     db = _SessionLocal()
     try:
+        _tenant_filter.apply(db)
         yield db
     finally:
         db.close()

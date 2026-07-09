@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.auth import validate_oidc_token, verify_api_key
-from app.database import get_db
+from app.database import get_db, set_tenant_context
 from app.models import APIKey, User
 
 security = HTTPBearer(auto_error=False)
@@ -54,6 +54,7 @@ async def get_current_user(
     # Try OIDC validation first, fall back to local decode
     payload = await validate_oidc_token(credentials.credentials)
     if payload:
+        set_tenant_context(payload.get("org_id"))
         return payload
 
     raise HTTPException(status_code=401, detail="Invalid or expired token")
