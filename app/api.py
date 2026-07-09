@@ -19,6 +19,7 @@ from app.middleware import RateLimiterMiddleware
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
+from app.routers.eval import router as eval_router
 from app.routers.health import router as health_router
 from app.routers.ingest import router as ingest_router
 from app.routers.mcp import router as mcp_router
@@ -116,6 +117,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(ingest_router)
 app.include_router(chat_router)
+app.include_router(eval_router)
 app.include_router(admin_router)
 app.include_router(mcp_router)
 app.include_router(sbom_router)
