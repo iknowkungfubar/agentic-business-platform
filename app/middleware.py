@@ -62,6 +62,11 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Too many requests. Please wait before trying again."},
+                    headers={
+                        "X-RateLimit-Limit": str(self.max_requests),
+                        "X-RateLimit-Reset": str(int(now + self.window_seconds)),
+                        "X-RateLimit-Remaining": "0",
+                    },
                 )
 
             self._requests[limit_key].append(now)
