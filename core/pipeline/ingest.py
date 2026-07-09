@@ -68,10 +68,7 @@ class DocumentIngester:
 
         ext = filepath.suffix.lower()
         if ext not in self.SUPPORTED_EXTENSIONS:
-            raise ValueError(
-                f"Unsupported file type: {ext}. "
-                f"Supported: {', '.join(sorted(self.SUPPORTED_EXTENSIONS))}"
-            )
+            raise ValueError(f"Unsupported file type: {ext}. Supported: {', '.join(sorted(self.SUPPORTED_EXTENSIONS))}")
 
         content = self._read_file(filepath)
         if not content.strip():

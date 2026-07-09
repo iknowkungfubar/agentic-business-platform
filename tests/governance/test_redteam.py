@@ -10,9 +10,7 @@ from core.governance.redteam import RedTeamScheduler
 class TestRedTeamScheduler:
     def test_schedule_test(self):
         scheduler = RedTeamScheduler()
-        test = scheduler.schedule(
-            "agent-1", "prompt_injection", "Test agent for prompt injection"
-        )
+        test = scheduler.schedule("agent-1", "prompt_injection", "Test agent for prompt injection")
         assert test.agent_id == "agent-1"
         assert test.test_type == "prompt_injection"
         assert test.status == "scheduled"
@@ -21,9 +19,7 @@ class TestRedTeamScheduler:
     def test_complete_test_passed(self):
         scheduler = RedTeamScheduler()
         test = scheduler.schedule("agent-1", "test", "")
-        result = scheduler.complete_test(
-            test.id, passed=True, findings=["All checks passed"]
-        )
+        result = scheduler.complete_test(test.id, passed=True, findings=["All checks passed"])
         assert result.status == "completed"
         assert result.passed is True
         assert result.completed_at is not None
@@ -31,9 +27,7 @@ class TestRedTeamScheduler:
     def test_complete_test_failed(self):
         scheduler = RedTeamScheduler()
         test = scheduler.schedule("agent-1", "test", "")
-        result = scheduler.complete_test(
-            test.id, passed=False, findings=["Vulnerability found"]
-        )
+        result = scheduler.complete_test(test.id, passed=False, findings=["Vulnerability found"])
         assert result.status == "completed"
         assert result.passed is False
 

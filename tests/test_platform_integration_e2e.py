@@ -6,7 +6,6 @@ Tests the integrated flow: API → pipeline → router → governance.
 from __future__ import annotations
 
 
-
 from core.pipeline.ingest import DocumentIngester
 from core.pipeline.chunk import TextChunker
 from core.router.intent import IntentClassifier
@@ -57,12 +56,14 @@ class TestPlatformIntegrationE2E:
 
         # 4. Run the chunks through policy evaluation
         engine = PolicyEngine()
-        engine.add_rule(PolicyRule(
-            name="audit_all",
-            description="All operations require auditing",
-            effect=RuleEffect.AUDIT,
-            conditions={},
-        ))
+        engine.add_rule(
+            PolicyRule(
+                name="audit_all",
+                description="All operations require auditing",
+                effect=RuleEffect.AUDIT,
+                conditions={},
+            )
+        )
 
         for chunk in chunks:
             action = {
@@ -93,13 +94,15 @@ class TestPlatformIntegrationE2E:
     def test_policy_blocks_unauthorized_action(self):
         """Policy engine should block unauthorized data access."""
         engine = PolicyEngine()
-        engine.add_rule(PolicyRule(
-            name="cmmc_cui_protection",
-            description="Block unauthorized CUI access",
-            effect=RuleEffect.DENY,
-            conditions={"resource_type": "cui", "authorized": False},
-            priority=10,
-        ))
+        engine.add_rule(
+            PolicyRule(
+                name="cmmc_cui_protection",
+                description="Block unauthorized CUI access",
+                effect=RuleEffect.DENY,
+                conditions={"resource_type": "cui", "authorized": False},
+                priority=10,
+            )
+        )
 
         action = {"action_type": "data_access", "resource_type": "cui", "authorized": False}
         result = engine.evaluate(action)
@@ -113,14 +116,18 @@ class TestPlatformIntegrationE2E:
     def test_code_document_routes_to_t3_and_passes_policy(self, tmp_path):
         """Code documents should route to T3 tier and pass governance."""
         doc_path = tmp_path / "script.py"
-        doc_path.write_text("def process_data(items):\n    results = []\n    for item in items:\n        results.append(item * 2)\n    return results\n")
+        doc_path.write_text(
+            "def process_data(items):\n    results = []\n    for item in items:\n        results.append(item * 2)\n    return results\n"
+        )
 
         ingester = DocumentIngester()
         chunker = TextChunker(chunk_size=1000, overlap=20)
         classifier = IntentClassifier()
         selector = ModelSelector()
         engine = PolicyEngine()
-        engine.add_rule(PolicyRule("audit_code", effect=RuleEffect.AUDIT, conditions={"action_type": "code_generation"}))
+        engine.add_rule(
+            PolicyRule("audit_code", effect=RuleEffect.AUDIT, conditions={"action_type": "code_generation"})
+        )
 
         doc = ingester.ingest(str(doc_path))
         chunks = chunker.chunk(doc)

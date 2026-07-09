@@ -205,9 +205,7 @@ class MCPScanner:
                     Finding(
                         severity=FindingSeverity.INFO,
                         description=f"Authentication required (HTTP {e.code})",
-                        detail=f"WWW-Authenticate: {www_auth}"
-                        if www_auth
-                        else "Access denied",
+                        detail=f"WWW-Authenticate: {www_auth}" if www_auth else "Access denied",
                     )
                 )
 

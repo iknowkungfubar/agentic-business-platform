@@ -52,15 +52,18 @@ class TestAPIIntegration:
         """Use a temp file DB so all connections share the same data."""
         db_path = tmp_path / "test.db"
         import os
+
         old_url = os.environ.get("DATABASE_URL", "")
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
         # Force re-import of db and api modules with new URL
         import app.db
         import importlib
+
         importlib.reload(app.db)
         app.db.init_db()
         # Also reload app.api so it picks up the fresh get_db from app.db
         import app.api
+
         importlib.reload(app.api)
         yield
         # Restore
@@ -77,11 +80,17 @@ class TestAPIIntegration:
         from fastapi.testclient import TestClient
 
         client = TestClient(app)
-        r = client.post("/auth/register", json={
-            "email": "admin@test.com", "password": "adminpass",
-            "full_name": "Admin", "org_name": "AdminOrg",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "admin@test.com",
+                "password": "adminpass",
+                "full_name": "Admin",
+                "org_name": "AdminOrg",
+            },
+        )
         from app.db import User, get_db
+
         db = next(get_db())
         user = db.query(User).filter(User.email == "admin@test.com").first()
         if user:
@@ -97,10 +106,15 @@ class TestAPIIntegration:
         from fastapi.testclient import TestClient
 
         client = TestClient(app)
-        r = client.post("/auth/register", json={
-            "email": "viewer@test.com", "password": "viewerpass",
-            "full_name": "Viewer", "org_name": "ViewerOrg",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "viewer@test.com",
+                "password": "viewerpass",
+                "full_name": "Viewer",
+                "org_name": "ViewerOrg",
+            },
+        )
         token = r.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
 

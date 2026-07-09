@@ -10,9 +10,7 @@ class TestAgentEvalSuite:
     def test_single_criterion_evaluation(self):
         suite = AgentEvalSuite()
         suite.add_criterion(EvalCriterion("correctness", weight=1.0))
-        result = suite.evaluate(
-            "agent-1", "task", "output", scores={"correctness": 0.8}
-        )
+        result = suite.evaluate("agent-1", "task", "output", scores={"correctness": 0.8})
         assert result.weighted_score == 0.8
         assert result.passed is True  # 0.8 >= 0.7 default threshold
 
@@ -20,25 +18,19 @@ class TestAgentEvalSuite:
         suite = AgentEvalSuite()
         suite.add_criterion(EvalCriterion("a", weight=0.5))
         suite.add_criterion(EvalCriterion("b", weight=0.5))
-        result = suite.evaluate(
-            "agent-1", "task", "output", scores={"a": 1.0, "b": 0.0}
-        )
+        result = suite.evaluate("agent-1", "task", "output", scores={"a": 1.0, "b": 0.0})
         assert result.weighted_score == 0.5
 
     def test_fails_below_threshold(self):
         suite = AgentEvalSuite(default_threshold=0.7)
         suite.add_criterion(EvalCriterion("correctness", weight=1.0))
-        result = suite.evaluate(
-            "agent-1", "task", "output", scores={"correctness": 0.3}
-        )
+        result = suite.evaluate("agent-1", "task", "output", scores={"correctness": 0.3})
         assert result.passed is False
 
     def test_custom_threshold(self):
         suite = AgentEvalSuite()
         suite.add_criterion(EvalCriterion("correctness", weight=1.0))
-        result = suite.evaluate(
-            "agent-1", "task", "output", scores={"correctness": 0.5}, threshold=0.4
-        )
+        result = suite.evaluate("agent-1", "task", "output", scores={"correctness": 0.5}, threshold=0.4)
         assert result.passed is True
 
     def test_missing_score_defaults_to_zero(self):

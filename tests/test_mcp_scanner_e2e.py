@@ -24,9 +24,7 @@ class TestMCPScannerE2E:
         assert result.reachable is False
         # Should have at least one finding about unreachability
         assert len(result.findings) > 0
-        critical_findings = [
-            f for f in result.findings if f.severity == FindingSeverity.CRITICAL
-        ]
+        critical_findings = [f for f in result.findings if f.severity == FindingSeverity.CRITICAL]
         assert any("unreachable" in f.description.lower() for f in critical_findings)
 
     def test_mcp_scanner_produces_report(self):

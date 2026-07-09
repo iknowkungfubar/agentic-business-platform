@@ -54,9 +54,7 @@ source = "pypi"
     def test_sbom_includes_dependency_details(self, tmp_path):
         """SBOM should include name, version, and source for each dependency."""
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[project]\nname = "test"\nversion = "1.0"\ndependencies = ["pytest>=8.0"]\n'
-        )
+        pyproject.write_text('[project]\nname = "test"\nversion = "1.0"\ndependencies = ["pytest>=8.0"]\n')
         lockfile = tmp_path / "uv.lock"
         lockfile.write_text("""version = 1
 [[package]]
@@ -76,9 +74,7 @@ source = "pypi"
     def test_sbom_exports_json(self, tmp_path):
         """SBOM should export to SPDX JSON format."""
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[project]\nname = "test"\nversion = "1.0"\ndependencies = []\n'
-        )
+        pyproject.write_text('[project]\nname = "test"\nversion = "1.0"\ndependencies = []\n')
         # No deps = still valid SBOM
 
         generator = SBOMGenerator()
@@ -115,9 +111,7 @@ source = "pypi"
     def test_sbom_scan_summary(self, tmp_path):
         """Should produce a human-readable scan summary."""
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[project]\nname = "test"\nversion = "1.0"\ndependencies = []\n'
-        )
+        pyproject.write_text('[project]\nname = "test"\nversion = "1.0"\ndependencies = []\n')
 
         generator = SBOMGenerator()
         result = generator.generate(project_root=str(tmp_path))

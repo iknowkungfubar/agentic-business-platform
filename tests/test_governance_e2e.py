@@ -181,9 +181,7 @@ class TestGovernanceE2E:
         t2 = scheduler.schedule("agent-1", "data_extraction", "Test 2")
 
         scheduler.complete_test(t1.id, passed=True, findings=["OK"])
-        scheduler.complete_test(
-            t2.id, passed=False, findings=["Failed to block extraction"]
-        )
+        scheduler.complete_test(t2.id, passed=False, findings=["Failed to block extraction"])
 
         history = scheduler.get_history(agent_id="agent-1")
         assert len(history) == 2

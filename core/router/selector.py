@@ -116,9 +116,7 @@ class ModelSelector:
         reason = " — ".join(reason_parts)
 
         # Confidence: base from intent, reduced if we upgraded tiers
-        confidence = intent.confidence * (
-            1.0 - 0.1 * abs(self._tier_index(final_tier) - self._tier_index(base_tier))
-        )
+        confidence = intent.confidence * (1.0 - 0.1 * abs(self._tier_index(final_tier) - self._tier_index(base_tier)))
 
         return RouteResult(
             model_tier=final_tier,

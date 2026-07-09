@@ -59,6 +59,7 @@ class TestDocumentIngesterPDF:
 
         with patch.dict("sys.modules", {"fitz": MagicMock()}):
             import fitz
+
             fitz.open.return_value = mock_doc
 
             doc = ingester.ingest(str(pdf_path))

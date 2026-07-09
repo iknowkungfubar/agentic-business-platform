@@ -27,9 +27,7 @@ class TestIntentClassifier:
 
     def test_classify_summarization(self, classifier):
         """Summarization requests should be classified correctly."""
-        result = classifier.classify(
-            "Please summarize the key findings from this report"
-        )
+        result = classifier.classify("Please summarize the key findings from this report")
         assert result.intent_type == "summarization"
 
     def test_classify_question_answering(self, classifier):
@@ -54,9 +52,7 @@ class TestIntentClassifier:
 
     def test_classify_creative_writing(self, classifier):
         """Creative writing should be classified correctly."""
-        result = classifier.classify(
-            "Write a short story about a robot learning to paint"
-        )
+        result = classifier.classify("Write a short story about a robot learning to paint")
         assert result.intent_type == "creative_writing"
 
     def test_empty_text_returns_unknown(self, classifier):
@@ -78,8 +74,6 @@ class TestIntentClassifier:
 
     def test_multiple_intents_picks_highest(self, classifier):
         """Text fitting multiple intents should pick the highest confidence."""
-        result = classifier.classify(
-            "def analyze_data():\n    # Summarize the results\n    pass"
-        )
+        result = classifier.classify("def analyze_data():\n    # Summarize the results\n    pass")
         # Should prefer code_generation over analysis or summarization
         assert result.intent_type == "code_generation"

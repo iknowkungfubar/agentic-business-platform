@@ -80,9 +80,7 @@ class AgentEvalSuite:
         if scores is None:
             scores = {}
 
-        effective_threshold = (
-            threshold if threshold is not None else self.default_threshold
-        )
+        effective_threshold = threshold if threshold is not None else self.default_threshold
 
         # Apply criteria: use provided scores or default to 0.0
         full_scores: dict[str, float] = {}
@@ -91,10 +89,7 @@ class AgentEvalSuite:
 
         # Calculate weighted score
         total_weight = sum(c.weight for c in self.criteria) or 1.0
-        weighted = (
-            sum(full_scores.get(c.name, 0.0) * c.weight for c in self.criteria)
-            / total_weight
-        )
+        weighted = sum(full_scores.get(c.name, 0.0) * c.weight for c in self.criteria) / total_weight
 
         scorecard = Scorecard(
             agent_id=agent_id,
@@ -109,9 +104,7 @@ class AgentEvalSuite:
         self._history.append(scorecard)
         return scorecard
 
-    def get_history(
-        self, agent_id: str | None = None, limit: int = 50
-    ) -> list[Scorecard]:
+    def get_history(self, agent_id: str | None = None, limit: int = 50) -> list[Scorecard]:
         """Get evaluation history, optionally filtered by agent."""
         if agent_id:
             filtered = [s for s in self._history if s.agent_id == agent_id]

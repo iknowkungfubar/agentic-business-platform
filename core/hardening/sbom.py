@@ -139,9 +139,7 @@ class SBOMGenerator:
             return deps
 
         # Parse individual dependency strings
-        dep_entries = re.findall(
-            r'"([^"]+)"', deps_text.split("=", 1)[-1] if "=" in deps_text else deps_text
-        )
+        dep_entries = re.findall(r'"([^"]+)"', deps_text.split("=", 1)[-1] if "=" in deps_text else deps_text)
 
         for entry in dep_entries:
             # Parse "package>=version" or "package==version" or "package"
@@ -198,9 +196,7 @@ class SBOMGenerator:
                         )
         return vulns
 
-    def export_spdx_json(
-        self, result: SBOMResult, output_path: str | Path
-    ) -> dict[str, Any]:
+    def export_spdx_json(self, result: SBOMResult, output_path: str | Path) -> dict[str, Any]:
         """Export SBOM as SPDX 2.3 JSON."""
         packages = [
             {

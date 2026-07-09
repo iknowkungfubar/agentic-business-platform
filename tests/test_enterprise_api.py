@@ -47,10 +47,12 @@ class TestAPI:
     def _db_setup(self, tmp_path):
         import os
         import importlib
+
         old_url = os.environ.get("DATABASE_URL", "")
         db_path = tmp_path / "test.db"
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
         import app.db
+
         importlib.reload(app.db)
         app.db.init_db()
         yield
@@ -62,6 +64,7 @@ class TestAPI:
     @pytest.fixture
     def client(self, _db_setup):
         from fastapi.testclient import TestClient
+
         return TestClient(app)
 
     def test_health_unauthenticated(self, client):
@@ -72,22 +75,28 @@ class TestAPI:
 
     def test_register_and_login(self, client):
         """Full registration and login flow."""
-        r = client.post("/auth/register", json={
-            "email": "test@test.com",
-            "password": "testpass123",
-            "full_name": "Test User",
-            "org_name": "TestOrg",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "test@test.com",
+                "password": "testpass123",
+                "full_name": "Test User",
+                "org_name": "TestOrg",
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert "access_token" in data
         assert data["user"]["email"] == "test@test.com"
 
         # Login with same credentials
-        r2 = client.post("/auth/login", json={
-            "email": "test@test.com",
-            "password": "testpass123",
-        })
+        r2 = client.post(
+            "/auth/login",
+            json={
+                "email": "test@test.com",
+                "password": "testpass123",
+            },
+        )
         assert r2.status_code == 200
         assert "access_token" in r2.json()
 
@@ -99,9 +108,15 @@ class TestAPI:
     def test_classify_with_auth(self, client):
         """Classify should work with valid auth."""
         # Register first
-        r = client.post("/auth/register", json={
-            "email": "user@test.com", "password": "pass", "full_name": "User", "org_name": "Org",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "user@test.com",
+                "password": "pass",
+                "full_name": "User",
+                "org_name": "Org",
+            },
+        )
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -111,9 +126,15 @@ class TestAPI:
 
     def test_route_with_auth(self, client):
         """Route should work with valid auth."""
-        r = client.post("/auth/register", json={
-            "email": "u2@test.com", "password": "pass", "full_name": "U", "org_name": "O",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "u2@test.com",
+                "password": "pass",
+                "full_name": "U",
+                "org_name": "O",
+            },
+        )
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -123,28 +144,45 @@ class TestAPI:
 
     def test_evaluate_with_auth(self, client):
         """Policy evaluation should work with auth."""
-        r = client.post("/auth/register", json={
-            "email": "u3@test.com", "password": "pass", "full_name": "U", "org_name": "O",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "u3@test.com",
+                "password": "pass",
+                "full_name": "U",
+                "org_name": "O",
+            },
+        )
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        r2 = client.post("/evaluate", json={
-            "action": {"action_type": "data_access", "resource_type": "cui", "authorized": False},
-        }, headers=headers)
+        r2 = client.post(
+            "/evaluate",
+            json={
+                "action": {"action_type": "data_access", "resource_type": "cui", "authorized": False},
+            },
+            headers=headers,
+        )
         assert r2.status_code == 200
         assert r2.json()["effect"] == "deny"
 
     def test_scan_mcp_with_auth(self, client):
         """MCP scan should work with auth (requires operator role)."""
-        r = client.post("/auth/register", json={
-            "email": "u4@test.com", "password": "pass", "full_name": "U", "org_name": "O",
-        })
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "u4@test.com",
+                "password": "pass",
+                "full_name": "U",
+                "org_name": "O",
+            },
+        )
         token = r.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Upgrade user to admin via direct DB
         from app.db import User, get_db
+
         db = next(get_db())
         user = db.query(User).filter(User.email == "u4@test.com").first()
         user.role = "admin"
@@ -157,21 +195,40 @@ class TestAPI:
 
     def test_register_duplicate_email(self, client):
         """Duplicate email should be rejected."""
-        client.post("/auth/register", json={
-            "email": "dup@test.com", "password": "pass", "org_name": "O",
-        })
-        r = client.post("/auth/register", json={
-            "email": "dup@test.com", "password": "pass", "org_name": "O2",
-        })
+        client.post(
+            "/auth/register",
+            json={
+                "email": "dup@test.com",
+                "password": "pass",
+                "org_name": "O",
+            },
+        )
+        r = client.post(
+            "/auth/register",
+            json={
+                "email": "dup@test.com",
+                "password": "pass",
+                "org_name": "O2",
+            },
+        )
         assert r.status_code == 400
         assert "already registered" in r.json()["detail"]
 
     def test_login_wrong_password(self, client):
         """Wrong password should be rejected."""
-        client.post("/auth/register", json={
-            "email": "wp@test.com", "password": "correctpass", "org_name": "O",
-        })
-        r = client.post("/auth/login", json={
-            "email": "wp@test.com", "password": "wrongpass",
-        })
+        client.post(
+            "/auth/register",
+            json={
+                "email": "wp@test.com",
+                "password": "correctpass",
+                "org_name": "O",
+            },
+        )
+        r = client.post(
+            "/auth/login",
+            json={
+                "email": "wp@test.com",
+                "password": "wrongpass",
+            },
+        )
         assert r.status_code == 401
