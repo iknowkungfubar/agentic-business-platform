@@ -126,8 +126,8 @@ app = FastAPI(
     license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
     contact={
         "name": "TurinTech Solutions",
-        "url": "https://turintech.solutions",
-        "email": "hello@turintech.solutions",
+        "url": "https://turintechsolutions.com",
+        "email": "josh@turintechsolutions.com",
     },
 )
 
