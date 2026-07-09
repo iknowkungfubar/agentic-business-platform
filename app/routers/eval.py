@@ -19,9 +19,8 @@ class EvalRunRequest(BaseModel):
 
 @router.post("/run")
 async def run_eval(req: EvalRunRequest, user: dict = Depends(get_current_user)):
-    """Evaluate an agent output against default criteria."""
+    """Evaluate an agent output against default criteria and return results."""
     from core.governance.eval import AgentEvalSuite, EvalCriterion  # noqa: PLC0415
-    from core.governance.templates import PolicyTemplates  # noqa: PLC0415
 
     suite = AgentEvalSuite()
     suite.add_criterion(EvalCriterion("correctness", weight=0.4))
@@ -37,12 +36,43 @@ async def run_eval(req: EvalRunRequest, user: dict = Depends(get_current_user)):
     )
 
     return {
+        "result_id": scorecard.id,
         "agent_id": scorecard.agent_id,
         "overall_score": scorecard.weighted_score,
         "threshold": scorecard.threshold,
         "passed": scorecard.passed,
         "scores": scorecard.scores,
     }
+
+
+@router.get("/results/{result_id}")
+async def get_eval_result(
+    result_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Get a specific evaluation result by ID.
+
+    Note: Eval results are in-memory and only available for the current
+    process lifetime. Persistent storage requires database integration.
+    """
+    from core.governance.eval import AgentEvalSuite  # noqa: PLC0415
+
+    suite = AgentEvalSuite()
+    history = suite.get_history(limit=1000)
+    for s in history:
+        if s.id == result_id:
+            return {
+                "id": s.id,
+                "agent_id": s.agent_id,
+                "task": s.task,
+                "overall_score": s.weighted_score,
+                "passed": s.passed,
+                "scores": s.scores,
+                "evaluated_at": s.evaluated_at.isoformat() if s.evaluated_at else None,
+            }
+    from fastapi import HTTPException
+
+    raise HTTPException(status_code=404, detail="Evaluation result not found (in-memory results may have expired)")
 
 
 @router.get("/criteria")

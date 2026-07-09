@@ -1,0 +1,34 @@
+# TurinTech Platform — Environment Configuration
+# Copy this to .env and adjust for your environment
+# All variables are optional — defaults in app/config.py
+
+# Database
+# DATABASE_URL=postgresql://turin:password@localhost:5432/turin
+# DATABASE_URL=sqlite:///./turin.db
+
+# Auth
+# JWT_SECRET=your-64-char-hex-secret-here
+# JWT_ALGORITHM=HS256
+# JWT_EXPIRE_MINUTES=1440
+
+# API
+# CORS_ORIGINS=*
+# RATE_LIMIT_MAX=10
+# DISABLE_RATE_LIMIT=false
+
+# Inference
+# INFERENCE_URL=http://localhost:1234/v1
+# INFERENCE_MODEL=qwen3.5-9b-deepseek-v4-flash
+# INFERENCE_TIMEOUT=30
+
+# Observability
+# LOG_LEVEL=info
+
+# Deployment
+# ENVIRONMENT=development
+# DEBUG=false
+# UVICORN_WORKERS=4
+# PORT=8000
+
+# Data Retention
+# RETENTION_TTL_DAYS=90
