@@ -16,7 +16,8 @@ class TestDashboard:
     def test_dashboard_returns_html(self, api_client):
         """GET /admin/dashboard returns HTML page for operator role."""
         from tests.helpers import register_user
-        from app.db import User, get_db
+        from app.database import get_db
+        from app.models import User
 
         data = register_user(api_client, email="op@dashboard.com", password="pass")
         token = data["access_token"]

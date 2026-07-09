@@ -5,7 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db import AgentRecord, AuditEvent, User, get_db
+from app.database import get_db
+from app.models import AgentRecord, AuditEvent, User
 from app.routers import require_role
 
 router = APIRouter(prefix="/admin", tags=["admin"])

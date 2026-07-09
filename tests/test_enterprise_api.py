@@ -10,7 +10,7 @@ from app.auth import (
     verify_api_key,
     verify_password,
 )
-from app.db import User
+from app.models import User
 
 
 class TestAuth:
@@ -161,7 +161,7 @@ class TestAPI:
         headers = {"Authorization": f"Bearer {token}"}
 
         # Upgrade user to admin via direct DB
-        from app.db import get_db
+        from app.database import get_db
 
         db = next(get_db())
         user = db.query(User).filter(User.email == "u4@test.com").first()

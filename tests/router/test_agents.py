@@ -21,7 +21,8 @@ class TestAgents:
     def test_register_agent(self, api_client):
         """POST /api/v1/agents creates a new agent record."""
         from tests.helpers import register_user
-        from app.db import User, get_db
+        from app.database import get_db
+        from app.models import User
 
         data = register_user(api_client, email="agent-admin@test.com", password="pass")
         token = data["access_token"]

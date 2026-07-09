@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.db import init_db
+from app.database import init_db
 from app.middleware import RateLimiterMiddleware
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router

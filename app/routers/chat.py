@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.db import Conversation, Message, get_db
+from app.database import get_db
+from app.models import Conversation, Message
 from app.routers import get_current_user
 
 router = APIRouter(tags=["orchestration"])

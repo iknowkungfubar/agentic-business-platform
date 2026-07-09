@@ -79,7 +79,8 @@ class TestAPIIntegration:
 
     def test_api_scan_mcp(self, api_client):
         """Scan MCP endpoint requires admin role."""
-        from app.db import User, get_db
+        from app.database import get_db
+        from app.models import User
         from tests.helpers import register_user
 
         data = register_user(api_client, email="admin@test.com", password="adminpass")
@@ -103,7 +104,8 @@ class TestAPIIntegration:
 
     def test_api_sbom(self, api_client):
         """SBOM endpoint requires admin role."""
-        from app.db import User, get_db
+        from app.database import get_db
+        from app.models import User
         from tests.helpers import register_user
 
         data = register_user(api_client, email="admin2@test.com", password="adminpass")

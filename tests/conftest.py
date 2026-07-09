@@ -22,10 +22,10 @@ def test_db(tmp_path: pytest.TempPathFactory) -> Generator[None, None, None]:
     db_path = tmp_path / "test.db"
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
-    import app.db
+    import app.database as app_db
 
-    app.db.reset_engine()
-    app.db.init_db()
+    app_db.reset_engine()
+    app_db.init_db()
     yield
     if old_url:
         os.environ["DATABASE_URL"] = old_url
