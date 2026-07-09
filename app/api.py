@@ -18,10 +18,12 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Header, status
+from fastapi import Depends, FastAPI, HTTPException, Header, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.auth import (
     create_access_token,
@@ -64,6 +66,43 @@ app.add_middleware(
 )
 
 security = HTTPBearer(auto_error=False)
+
+# ── Rate Limiter ────────────────────────────────────────────────
+
+class RateLimiterMiddleware(BaseHTTPMiddleware):
+    """Simple in-memory rate limiter for auth endpoints."""
+
+    def __init__(self, app, max_requests: int = 10, window_seconds: int = 60):
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self._requests: dict[str, list[float]] = {}
+
+    async def dispatch(self, request: Request, call_next):
+        # Only rate-limit auth endpoints
+        if request.url.path in ("/auth/login", "/auth/register"):
+            client_ip = request.client.host if request.client else "unknown"
+            now = datetime.now(UTC).timestamp()
+
+            if client_ip not in self._requests:
+                self._requests[client_ip] = []
+
+            # Clean old entries
+            cutoff = now - self.window_seconds
+            self._requests[client_ip] = [t for t in self._requests[client_ip] if t > cutoff]
+
+            if len(self._requests[client_ip]) >= self.max_requests:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many requests. Please wait before trying again."},
+                )
+
+            self._requests[client_ip].append(now)
+
+        return await call_next(request)
+
+app.add_middleware(RateLimiterMiddleware, max_requests=10, window_seconds=60)
 
 # ── Auth Dependencies ─────────────────────────────────────────────
 

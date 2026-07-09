@@ -1,0 +1,45 @@
+# Dependencies
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+.gitmodules
+*.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+.env.example
+
+# Tests
+.pytest_cache/
+.coverage*
+coverage/
+htmlcov/
+
+# Project
+node_modules/
+web/node_modules/
+web/dist/
+acp/

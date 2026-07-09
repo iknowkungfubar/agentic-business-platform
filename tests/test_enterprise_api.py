@@ -52,8 +52,24 @@ class TestAuth:
 class TestAPI:
     """API endpoint tests."""
 
+    @pytest.fixture(autouse=True)
+    def _db_setup(self, tmp_path):
+        import os
+        import importlib
+        old_url = os.environ.get("DATABASE_URL", "")
+        db_path = tmp_path / "test.db"
+        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+        import app.db
+        importlib.reload(app.db)
+        app.db.init_db()
+        yield
+        if old_url:
+            os.environ["DATABASE_URL"] = old_url
+        else:
+            os.environ.pop("DATABASE_URL", None)
+
     @pytest.fixture
-    def client(self):
+    def client(self, _db_setup):
         from fastapi.testclient import TestClient
         return TestClient(app)
 
