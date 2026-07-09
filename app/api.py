@@ -27,10 +27,12 @@ from app.routers.compliance import router as compliance_router
 from app.routers.costs import router as costs_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.eval import router as eval_router
+from app.routers.feedback import router as feedback_router
 from app.routers.health import router as health_router
 from app.routers.ingest import router as ingest_router
 from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
+from app.routers.prompts import router as prompts_router
 from app.routers.sbom import router as sbom_router
 from app.routers.tenant import router as tenant_router
 from app.routers.workflows import router as workflows_router
@@ -185,6 +187,7 @@ app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(billing_router, prefix="/api/v1/billing")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
+app.include_router(feedback_router, prefix="/api/v1/feedback")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(agents_router, prefix="/api/v1/agents")
 app.include_router(api_keys_router, prefix="/api/v1/api-keys")
@@ -194,6 +197,7 @@ app.include_router(costs_router, prefix="/api/v1/costs")
 app.include_router(dashboard_router, prefix="")
 app.include_router(mcp_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
+app.include_router(prompts_router, prefix="/api/v1/prompts")
 app.include_router(sbom_router, prefix="/api/v1")
 app.include_router(tenant_router, prefix="")
 app.include_router(workflows_router, prefix="")

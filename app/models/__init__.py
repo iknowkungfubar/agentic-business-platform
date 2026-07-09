@@ -6,9 +6,11 @@ from app.models.audit_event import AuditEvent
 from app.models.conversation import Conversation
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.models.feedback import LLMFeedback
 from app.models.mcp_scan import MCPScanResult
 from app.models.message import Message
 from app.models.organization import Organization
+from app.models.prompt_template import PromptTemplate
 from app.models.semantic_cache import SemanticCache
 from app.models.user import User
 from app.models.workflow import WorkflowExecution

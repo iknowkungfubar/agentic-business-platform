@@ -2,11 +2,25 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useChatStore';
-import { chatApi, createChatStream } from '../api/client';
+import { chatApi, createChatStream, adminApi } from '../api/client';
 import { Send, Plus } from 'lucide-react';
 
 export function ChatArea() {
   const { t } = useTranslation();
+
+  async function submitFeedback(messageId: number, rating: number, modelTier: string) {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const token = useAppStore.getState().token;
+    try {
+      await fetch(`${API_BASE}/api/v1/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message_id: messageId, rating, model_tier: modelTier }),
+      });
+    } catch {
+      // Feedback is best-effort
+    }
+  }
   const { conversationId: paramId } = useParams();
   const token = useAppStore((s) => s.token);
   const messages = useAppStore((s) => s.messages);
@@ -138,6 +152,26 @@ export function ChatArea() {
               <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               {msg.model_tier && (
                 <p className="text-xs text-slate-500 mt-1">Tier: {msg.model_tier}</p>
+              )}
+              {msg.role === 'assistant' && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => submitFeedback(msg.id, 1, msg.model_tier)}
+                    className="text-slate-500 hover:text-emerald-400 transition-colors"
+                    aria-label="Thumbs up — helpful response"
+                    title="Helpful"
+                  >
+                    👍
+                  </button>
+                  <button
+                    onClick={() => submitFeedback(msg.id, -1, msg.model_tier)}
+                    className="text-slate-500 hover:text-red-400 transition-colors"
+                    aria-label="Thumbs down — unhelpful response"
+                    title="Not helpful"
+                  >
+                    👎
+                  </button>
+                </div>
               )}
             </div>
           </div>

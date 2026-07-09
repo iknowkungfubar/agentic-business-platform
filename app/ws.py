@@ -1,41 +1,50 @@
-"""WebSocket connection manager — real-time event push to browser clients.
+"""Distributed WebSocket connection manager — Redis Pub/Sub backplane.
 
-Authenticates users via JWT on connection, maps sessions to organizations,
-and broadcasts enterprise events from Redis Streams to all connected clients.
+Multi-pod Kubernetes support: connections are registered per pod in memory,
+but a Redis Pub/Sub channel per organization ensures events reach the user
+regardless of which physical pod they're connected to.
+
+Architecture:
+  Pod A: User1 (org=5) → WS connected → subscribes Redis channel "org:5:events"
+  Pod B: User2 (org=5) → WS connected → subscribes Redis channel "org:5:events"
+  Worker publishes to "org:5:events" → Redis fan-out → both pods receive → both clients get the event
 """
-
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 from app.auth import decode_token
 
 
-class ConnectionManager:
-    """Manages WebSocket connections organized by organization_id.
+class DistributedConnectionManager:
+    """Redis-backed WebSocket manager for horizontally scaled deployments.
 
-    Each connection is authenticated via JWT on upgrade. Messages are
-    broadcast to all connections within an organization, enabling
-    real-time updates without polling.
+    Each pod maintains its own in-memory connection map. A Redis Pub/Sub
+    channel per org handles cross-pod broadcasting.
     """
 
     def __init__(self):
-        # {org_id: {websocket: user_info}}
-        self._connections: dict[int, dict[int, dict[str, Any]]] = {}
-        # {websocket_id: (org_id, websocket)}
-        self._sockets: dict[int, tuple[int, WebSocket]] = {}
+        self._connections: dict[int, dict[int, WebSocket]] = {}  # org_id → {ws_id: ws}
+        self._pubsubs: dict[int, Any] = {}  # org_id → Redis pubsub listener
+
+    def _get_redis(self):
+        from redis.asyncio import Redis  # noqa: PLC0415
+
+        return Redis(
+            host=os.getenv("REDIS_HOST", "redis"),
+            port=int(os.getenv("REDIS_PORT", "6379")),
+            db=0,
+            socket_connect_timeout=2,
+            decode_responses=True,
+        )
 
     async def connect(self, websocket: WebSocket) -> dict[str, Any] | None:
-        """Accept a WebSocket connection and authenticate via JWT token.
-
-        Expects the token as a query parameter: ws://host/ws?token=xxx
-        """
+        """Accept and authenticate a WebSocket connection, subscribe to org channel."""
         await websocket.accept()
-
-        # Extract JWT from query params
         token = websocket.query_params.get("token", "")
         if not token:
             await websocket.send_json({"error": "Missing authentication token"})
@@ -49,63 +58,91 @@ class ConnectionManager:
             return None
 
         org_id = payload.get("org_id") or 0
-        user_id = payload.get("user_id") or 0
+        ws_id = id(websocket)
 
-        # Register connection
         if org_id not in self._connections:
             self._connections[org_id] = {}
-        self._connections[org_id][id(websocket)] = payload
-        self._sockets[id(websocket)] = (org_id, websocket)
+            # Subscribe to Redis Pub/Sub for this org
+            await self._subscribe_org(org_id)
 
-        await websocket.send_json({"type": "connected", "org_id": org_id, "user_id": user_id})
+        self._connections[org_id][ws_id] = websocket
+        await websocket.send_json({"type": "connected", "org_id": org_id})
         return payload
+
+    async def _subscribe_org(self, org_id: int) -> None:
+        """Subscribe to the Redis Pub/Sub channel for this org."""
+        try:
+            r = self._get_redis()
+            pubsub = r.pubsub()
+            await pubsub.subscribe(f"org:{org_id}:events")
+            self._pubsubs[org_id] = (r, pubsub)
+            # Start background listener
+            import asyncio  # noqa: PLC0415
+
+            asyncio.create_task(self._listen_org(org_id, pubsub))
+        except Exception:
+            pass
+
+    async def _listen_org(self, org_id: int, pubsub: Any) -> None:
+        """Background task: listen to Redis Pub/Sub and broadcast to local connections."""
+        try:
+            async for message in pubsub.listen():
+                if message["type"] != "message":
+                    continue
+                try:
+                    event = json.loads(message["data"])
+                    await self._broadcast_local(org_id, event)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    async def _broadcast_local(self, org_id: int, event: dict) -> None:
+        """Broadcast an event to all local connections for an org."""
+        connections = self._connections.get(org_id, {})
+        stale = []
+        for ws_id, ws in connections.items():
+            try:
+                await ws.send_json(event)
+            except Exception:
+                stale.append(ws_id)
+        for ws_id in stale:
+            del connections[ws_id]
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove a disconnected WebSocket."""
         ws_id = id(websocket)
-        if ws_id in self._sockets:
-            org_id, _ = self._sockets.pop(ws_id)
-            if org_id in self._connections:
-                self._connections[org_id].pop(ws_id, None)
-                if not self._connections[org_id]:
-                    del self._connections[org_id]
+        for org_id, connections in self._connections.items():
+            if ws_id in connections:
+                del connections[ws_id]
+                if not connections:
+                    # Unsubscribe from Redis channel
+                    if org_id in self._pubsubs:
+                        r, pubsub = self._pubsubs.pop(org_id)
+                        try:
+                            await pubsub.unsubscribe(f"org:{org_id}:events")
+                            await r.aclose()
+                        except Exception:
+                            pass
+                break
 
-    async def broadcast_to_org(self, org_id: int, event: dict[str, Any]) -> int:
-        """Broadcast an event to all connections in an organization.
+    async def publish_org(self, org_id: int, event: dict) -> None:
+        """Publish an event to the Redis Pub/Sub channel for an org.
 
-        Returns the number of clients the event was sent to.
+        This is the primary method for cross-pod event delivery.
         """
-        sent = 0
-        connections = self._connections.get(org_id, {})
-        stale = []
+        try:
+            r = self._get_redis()
+            await r.publish(f"org:{org_id}:events", json.dumps(event, default=str))
+            await r.aclose()
+        except Exception:
+            pass
 
-        for ws_id, user_info in connections.items():
-            _, ws = self._sockets.get(ws_id, (None, None))
-            if ws is None:
-                stale.append(ws_id)
-                continue
-            try:
-                await ws.send_json(event)
-                sent += 1
-            except Exception:
-                stale.append(ws_id)
-
-        for ws_id in stale:
-            await self.disconnect(self._sockets.get(ws_id, (None, None))[1])
-
-        return sent
-
-    async def broadcast_to_all(self, event: dict[str, Any]) -> int:
-        """Broadcast an event to all connected clients."""
-        total = 0
+    async def broadcast_to_all(self, event: dict) -> None:
+        """Broadcast to all connected orgs."""
         for org_id in list(self._connections.keys()):
-            total += await self.broadcast_to_org(org_id, event)
-        return total
-
-    @property
-    def active_connections(self) -> int:
-        return len(self._sockets)
+            await self.publish_org(org_id, event)
 
 
 # Singleton
-manager = ConnectionManager()
+manager = DistributedConnectionManager()
