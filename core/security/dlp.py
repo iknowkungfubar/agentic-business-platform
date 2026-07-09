@@ -7,6 +7,7 @@ replace sensitive values with tokens, store the mapping, and unmask on output.
 This ensures the LLM never "sees" real PII — a zero-trust requirement for
 CMMC 2.0, EU AI Act, and HIPAA compliance.
 """
+
 from __future__ import annotations
 
 import json
@@ -59,6 +60,7 @@ def analyze(text: str) -> DLPResult:
     counters: dict[str, int] = {}
 
     for pii_type, description, pattern in PI_PATTERNS:
+
         def make_replacer(pii_type: str, mapping: dict, counters: dict, findings: list) -> callable:
             def replacer(match: re.Match) -> str:
                 original = match.group(0)
@@ -66,15 +68,18 @@ def analyze(text: str) -> DLPResult:
                 counters[pii_type] += 1
                 token = f"[REDACTED_{pii_type}_{counters[pii_type]}]"
                 mapping[token] = original
-                findings.append({
-                    "type": pii_type,
-                    "description": description,
-                    "token": token,
-                    "original_length": len(original),
-                    "start": match.start(),
-                    "end": match.end(),
-                })
+                findings.append(
+                    {
+                        "type": pii_type,
+                        "description": description,
+                        "token": token,
+                        "original_length": len(original),
+                        "start": match.start(),
+                        "end": match.end(),
+                    }
+                )
                 return token
+
             return replacer
 
         masked = pattern.sub(make_replacer(pii_type, mapping, counters, findings), masked)

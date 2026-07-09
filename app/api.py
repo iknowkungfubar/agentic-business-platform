@@ -11,7 +11,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
@@ -33,6 +33,7 @@ from app.routers.mcp import router as mcp_router
 from app.routers.policies import router as policies_router
 from app.routers.sbom import router as sbom_router
 from app.routers.tenant import router as tenant_router
+from app.ws import manager as ws_manager
 
 from app.middleware import TokenBucketRateLimiter
 from app.telemetry import (
@@ -149,6 +150,31 @@ register_metrics_endpoint(app)
 from app.errors import register_error_handlers  # noqa: PLC0415
 
 register_error_handlers(app)
+
+# ── WebSocket endpoint ─────────────────────────────────────────
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time enterprise events.
+
+    Connect with: ws://host:8000/ws?token=<jwt_token>
+    """
+    payload = await ws_manager.connect(websocket)
+    if payload is None:
+        return
+
+    try:
+        while True:
+            # Keep connection alive — handle client pings
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        await ws_manager.disconnect(websocket)
+    except Exception:
+        await ws_manager.disconnect(websocket)
+
 
 # ── Routers ───────────────────────────────────────────────────────
 # Health stays at root for k8s probes; everything else under /api/v1.

@@ -3,6 +3,7 @@
 Publishes structured JSON events to Redis Streams (XADD), which are
 consumed by the ARQ worker and dispatched to matching webhook subscriptions.
 """
+
 from __future__ import annotations
 
 import json

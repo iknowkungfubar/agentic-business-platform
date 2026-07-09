@@ -8,6 +8,7 @@ Includes:
 - Hard timeout per attempt (10s)
 - Graceful fallback returning None on failure instead of raising
 """
+
 from __future__ import annotations
 
 import logging

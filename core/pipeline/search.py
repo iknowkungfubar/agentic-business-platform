@@ -4,6 +4,7 @@ Uses Reciprocal Rank Fusion (RRF) to combine results from both search
 strategies, producing a re-ranked result set that leverages the strengths
 of both dense (semantic) and sparse (keyword) retrieval.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -52,12 +53,14 @@ def hybrid_search(
             {"query_vec": vector_str, "org_id": org_id or 0, "top_k": top_k * 2},
         ).fetchall()
         for row in rows:
-            semantic_results.append({
-                "id": row[0],
-                "document_id": row[1],
-                "content": row[2],
-                "score": float(row[3] or 0),
-            })
+            semantic_results.append(
+                {
+                    "id": row[0],
+                    "document_id": row[1],
+                    "content": row[2],
+                    "score": float(row[3] or 0),
+                }
+            )
     except Exception:
         pass
 
@@ -80,12 +83,14 @@ def hybrid_search(
                 {"tsquery": tsquery, "org_id": org_id or 0, "top_k": top_k * 2},
             ).fetchall()
             for row in rows:
-                keyword_results.append({
-                    "id": row[0],
-                    "document_id": row[1],
-                    "content": row[2],
-                    "score": float(row[3] or 0),
-                })
+                keyword_results.append(
+                    {
+                        "id": row[0],
+                        "document_id": row[1],
+                        "content": row[2],
+                        "score": float(row[3] or 0),
+                    }
+                )
     except Exception:
         pass
 

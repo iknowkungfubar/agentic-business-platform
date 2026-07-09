@@ -4,6 +4,7 @@ Uses cosine similarity against stored query embeddings to detect
 semantically similar queries and return cached responses.
 Threshold: > 0.95 cosine similarity = cache hit.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

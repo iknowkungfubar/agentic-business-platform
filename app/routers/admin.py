@@ -1,31 +1,80 @@
-"""Admin endpoints — users, agents, audit log."""
+"""Admin endpoints — users, agents, audit log, GDPR compliance."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+import hashlib
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import AgentRecord, AuditEvent, User
-from app.routers import require_role
+from app.models import User as UserModel
+from app.models import AgentRecord, AuditEvent
+from app.models.user import UserRole
+from app.routers import RequireRole, get_current_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/users")
 async def list_users(
-    user: dict = Depends(require_role("admin")),
+    user: dict = Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN)),
     db: Session = Depends(get_db),
 ):
-    users = db.query(User).filter(User.organization_id == user.get("org_id")).all()
+    """List all users in the organization (excluding soft-deleted)."""
+    users = (
+        db.query(UserModel)
+        .filter(
+            UserModel.organization_id == user.get("org_id"),
+            UserModel.deleted_at.is_(None),
+        )
+        .all()
+    )
     return [{"id": u.id, "email": u.email, "role": u.role, "full_name": u.full_name} for u in users]
+
+
+@router.delete("/users/{user_id}/forget")
+async def forget_user(
+    user_id: int,
+    user: dict = Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """GDPR Right to be Forgotten — anonymize user data while preserving WORM audit integrity.
+
+    Overwrites PII fields with SHA-256 hashes, sets deleted_at, and preserves
+    primary keys so AuditEvent foreign key relationships remain intact.
+    """
+    target = (
+        db.query(UserModel)
+        .filter(
+            UserModel.id == user_id,
+            UserModel.organization_id == user.get("org_id"),
+        )
+        .first()
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.deleted_at:
+        raise HTTPException(status_code=400, detail="User already forgotten")
+
+    # Anonymize — hash PII fields with a salt to prevent reversal
+    salt = hashlib.sha256(f"{user_id}-{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16]
+    target.email = hashlib.sha256(f"{target.email}--{salt}".encode()).hexdigest()[:32] + "@anonymized.local"
+    target.full_name = f"User_{target.id}_anonymized"
+    target.hashed_password = hashlib.sha256(f"DELETED-{salt}".encode()).hexdigest()
+    target.deleted_at = datetime.now(UTC)
+
+    db.commit()
+    return {"status": "anonymized", "user_id": user_id}
 
 
 @router.get("/agents")
 async def list_agents(
-    user: dict = Depends(require_role("operator")),
+    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN)),
     db: Session = Depends(get_db),
 ):
+    """List all agents in the organization."""
     agents = db.query(AgentRecord).filter(AgentRecord.organization_id == user.get("org_id")).all()
     return [
         {
@@ -42,9 +91,10 @@ async def list_agents(
 @router.get("/audit-log")
 async def audit_log(
     limit: int = 50,
-    user: dict = Depends(require_role("auditor")),
+    user: dict = Depends(RequireRole(UserRole.AUDITOR, UserRole.SUPERADMIN)),
     db: Session = Depends(get_db),
 ):
+    """Query audit events for the organization (WORM-protected, cannot be modified)."""
     events = (
         db.query(AuditEvent)
         .filter(AuditEvent.organization_id == user.get("org_id"))
@@ -55,7 +105,7 @@ async def audit_log(
     return [
         {
             "id": e.id,
-            "timestamp": e.timestamp.isoformat(),
+            "timestamp": e.timestamp.isoformat() if e.timestamp else None,
             "agent_id": e.agent_id,
             "action_type": e.action_type,
             "policy_decision": e.policy_decision,
