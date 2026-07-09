@@ -19,6 +19,7 @@ dependencies = [
     "pydantic-settings>=2.0",
     "alembic>=1.13",
     "ecdsa>=0.19.1",
+    "agent-control-plane",
 ]
 
 [project.optional-dependencies]
@@ -55,3 +56,11 @@ ignore = ["D", "S101", "ANN", "COM", "INP", "TD", "EM", "ERA", "PLR2004"]
              "SLF001", "S310", "RUF043", "A002", "E501", "ARG002"]
 "core/*" = ["PERF401", "TRY003", "RUF012", "FBT001", "PTH123", "S310",
             "PTH202", "PLC0415", "SIM102"]
+
+[tool.uv.workspace]
+members = [
+    "acp",
+]
+
+[tool.uv.sources]
+agent-control-plane = { workspace = true }
