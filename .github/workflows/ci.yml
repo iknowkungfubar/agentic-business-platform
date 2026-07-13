@@ -87,7 +87,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
       - name: Trivy — filesystem scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
@@ -96,7 +96,7 @@ jobs:
           severity: CRITICAL,HIGH
           skip-dirs: .venv,node_modules,acp/.venv
       - name: Trivy — SBOM
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
