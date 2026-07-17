@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
@@ -11,7 +13,7 @@ router = APIRouter(tags=["tenant"])
 
 
 @router.get("/api/v1/tenant/resolve")
-async def resolve_tenant(domain: str = Query(..., description="Custom domain to resolve")):
+async def resolve_tenant(domain: Annotated[str, Query(description="Custom domain to resolve")]):
     """Unauthenticated endpoint — returns branding details for a tenant's custom domain.
 
     Used by the frontend's white-labeling system to dynamically apply

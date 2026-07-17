@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -15,9 +17,9 @@ class PolicyTestRequest(BaseModel):
 
 
 @router.get("/policies")
-async def list_policies(user: dict = Depends(get_current_user)):
+async def list_policies(user: Annotated[dict, Depends(get_current_user)]):
     """List all available compliance policy templates."""
-    from core.governance.templates import PolicyTemplates  # noqa: PLC0415
+    from core.governance.templates import PolicyTemplates
 
     cmmc = PolicyTemplates.get_cmmc_rules()
     return {
@@ -36,10 +38,10 @@ async def list_policies(user: dict = Depends(get_current_user)):
 
 
 @router.post("/test-policy")
-async def test_policy(req: PolicyTestRequest, user: dict = Depends(get_current_user)):
+async def test_policy(req: PolicyTestRequest, user: Annotated[dict, Depends(get_current_user)]):
     """Test an action against the CMMC policy set."""
-    from core.governance.policy import PolicyEngine  # noqa: PLC0415
-    from core.governance.templates import PolicyTemplates  # noqa: PLC0415
+    from core.governance.policy import PolicyEngine
+    from core.governance.templates import PolicyTemplates
 
     engine = PolicyEngine()
     engine.add_rules(PolicyTemplates.get_cmmc_rules())

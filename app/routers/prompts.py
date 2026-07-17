@@ -8,15 +8,18 @@ variables for injection at inference time.
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import PromptTemplate
 from app.models.user import UserRole
 from app.routers import RequireRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/prompts", tags=["prompts"])
 
@@ -42,7 +45,7 @@ def render_template(template: PromptTemplate, variables: dict[str, str]) -> str:
 
 @router.get("")
 async def list_prompts(
-    active_only: bool = Query(False, description="Only return active templates"),
+    active_only: Annotated[bool, Query(description="Only return active templates")] = False,
     user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
     db: Session = Depends(get_db),
 ):
@@ -67,8 +70,8 @@ async def list_prompts(
 @router.post("")
 async def create_prompt(
     req: CreatePromptRequest,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Create a new prompt template."""
     template = PromptTemplate(
@@ -93,8 +96,8 @@ async def create_prompt(
 async def update_prompt(
     template_id: int,
     req: CreatePromptRequest,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Update an existing prompt template."""
     template = (
@@ -117,8 +120,8 @@ async def update_prompt(
 @router.delete("/{template_id}")
 async def delete_prompt(
     template_id: int,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Delete a prompt template (soft: sets is_active to False)."""
     template = (

@@ -36,7 +36,7 @@ async def publish_event(event_type: str, payload: dict[str, Any], org_id: int | 
     redis_port = int(os.getenv("REDIS_PORT", "6379"))
 
     try:
-        from redis.asyncio import Redis  # noqa: PLC0415
+        from redis.asyncio import Redis
 
         r = Redis(host=redis_host, port=redis_port, db=0, socket_connect_timeout=2)
         event = {

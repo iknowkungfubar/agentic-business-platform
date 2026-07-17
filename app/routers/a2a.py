@@ -7,6 +7,8 @@ into the internal DAG Orchestrator for processing.
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -28,14 +30,14 @@ class A2AMessage(BaseModel):
 @router.post("/inbox")
 async def a2a_inbox(
     msg: A2AMessage,
-    user: dict = Depends(get_current_user),
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     """Receive and process an A2A message from an external agent.
 
     The message must include a PQC-signed intent manifest. After signature
     verification, the request is routed to the DAG Orchestrator for execution.
     """
-    from core.security.a2a_auth import verify_a2a_request  # noqa: PLC0415
+    from core.security.a2a_auth import verify_a2a_request
 
     # In production, look up the external agent's registered public key
     # from the tenant's trusted agent registry

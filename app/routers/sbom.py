@@ -14,7 +14,7 @@ async def generate_sbom(
     project_root: str = ".",
     user: dict = Depends(require_role("operator")),
 ):
-    from core.hardening.sbom import SBOMGenerator  # noqa: PLC0415
+    from core.hardening.sbom import SBOMGenerator
 
     generator = SBOMGenerator()
     result = generator.generate(project_root=project_root)

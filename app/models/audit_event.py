@@ -11,12 +11,14 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Session
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 
 class AuditEvent(Base):

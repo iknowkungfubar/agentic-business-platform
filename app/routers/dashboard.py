@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
@@ -15,7 +16,7 @@ _HERE = Path(__file__).parent
 
 
 @router.get("/dashboard", include_in_schema=False)
-async def admin_dashboard(user: dict = Depends(require_role("operator"))):
+async def admin_dashboard(user: Annotated[dict, Depends(require_role("operator"))]):
     """Serve the admin dashboard HTML."""
     html_path = _HERE / "templates" / "dashboard.html"
     if not html_path.exists():

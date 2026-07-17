@@ -4,23 +4,26 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Organization, User as UserModel
-from app.models import AgentRecord, AuditEvent
+from app.models import AgentRecord, AuditEvent, Organization
+from app.models import User as UserModel
 from app.models.user import UserRole
-from app.routers import RequireRole, get_current_user
+from app.routers import RequireRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/users")
 async def list_users(
-    user: dict = Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """List all users in the organization (excluding soft-deleted)."""
     users = (
@@ -37,8 +40,8 @@ async def list_users(
 @router.delete("/users/{user_id}/forget")
 async def forget_user(
     user_id: int,
-    user: dict = Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.SUPERADMIN, UserRole.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """GDPR Right to be Forgotten — anonymize user data while preserving WORM audit integrity.
 
@@ -71,8 +74,8 @@ async def forget_user(
 
 @router.get("/agents")
 async def list_agents(
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """List all agents in the organization."""
     agents = db.query(AgentRecord).filter(AgentRecord.organization_id == user.get("org_id")).all()

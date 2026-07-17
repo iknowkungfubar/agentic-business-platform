@@ -5,12 +5,14 @@ from __future__ import annotations
 import os
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from fastapi import Request
 
 
 class TokenBucketRateLimiter(BaseHTTPMiddleware):
@@ -45,7 +47,7 @@ class TokenBucketRateLimiter(BaseHTTPMiddleware):
     def _get_redis(self):
         """Get a Redis client (returns None if unavailable)."""
         try:
-            from redis.asyncio import Redis  # noqa: PLC0415
+            from redis.asyncio import Redis
 
             return Redis.from_url(
                 f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
@@ -71,7 +73,7 @@ class TokenBucketRateLimiter(BaseHTTPMiddleware):
         auth = request.headers.get("authorization", "")
         if auth.startswith("Bearer "):
             try:
-                from app.auth import decode_token  # noqa: PLC0415
+                from app.auth import decode_token
 
                 payload = decode_token(auth[7:])
                 if payload:
@@ -150,7 +152,7 @@ class TokenBucketRateLimiter(BaseHTTPMiddleware):
                 return {0, retry_after}
             end
             """
-            import hashlib  # noqa: PLC0415
+            import hashlib
 
             sha = hashlib.sha1(script.encode()).hexdigest()
             try:
@@ -177,7 +179,7 @@ class TokenBucketRateLimiter(BaseHTTPMiddleware):
         allowed, retry_after = await self._check_redis_token_bucket(limit_key)
 
         if not allowed:
-            from fastapi.responses import JSONResponse  # noqa: PLC0415
+            from fastapi.responses import JSONResponse
 
             now_ts = int(datetime.now(UTC).timestamp())
             return JSONResponse(

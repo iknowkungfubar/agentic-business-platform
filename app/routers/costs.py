@@ -3,21 +3,24 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AgentRecord, Conversation, Message
 from app.routers import get_current_user
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/costs", tags=["costs"])
 
 
 @router.get("")
 async def cost_dashboard(
-    period_days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
+    period_days: Annotated[int, Query(ge=1, le=365, description="Lookback period in days")] = 30,
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

@@ -1,6 +1,6 @@
 def test_database_imports() -> None:
     """Verify app.database and app.models exports."""
-    from app.database import Base, get_db, init_db, reset_engine, get_engine
+    from app.database import get_db, get_engine, init_db, reset_engine
 
     for name in ("User", "Organization", "APIKey", "AgentRecord", "AuditEvent", "Document", "Conversation", "Message"):
         import importlib

@@ -26,7 +26,7 @@ async def readiness():
 
     Checks database connectivity. Used by Kubernetes readinessProbe.
     """
-    from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
+    from app.database import _get_write_engine as _get_engine
 
     try:
         conn = _get_engine().connect()
@@ -38,7 +38,7 @@ async def readiness():
             "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as exc:
-        from fastapi.responses import JSONResponse  # noqa: PLC0415
+        from fastapi.responses import JSONResponse
 
         return JSONResponse(
             status_code=503,
@@ -58,7 +58,7 @@ async def deep_health():
     Checks database, migrations status, and downstream services.
     Used by monitoring dashboards and alerting.
     """
-    from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
+    from app.database import _get_write_engine as _get_engine
 
     checks = {
         "database": False,
@@ -80,9 +80,9 @@ async def deep_health():
         checks["database"] = False
 
     # Check inference connectivity (non-blocking)
-    import httpx  # noqa: PLC0415
+    import httpx
 
-    from app.config import settings  # noqa: PLC0415
+    from app.config import settings
 
     try:
         resp = httpx.get(f"{settings.inference_url}/models", timeout=2.0)
@@ -93,7 +93,7 @@ async def deep_health():
     all_ok = all(checks.values())
     status_code = 200 if all_ok else 503
 
-    from fastapi.responses import JSONResponse  # noqa: PLC0415
+    from fastapi.responses import JSONResponse
 
     return JSONResponse(
         status_code=status_code,

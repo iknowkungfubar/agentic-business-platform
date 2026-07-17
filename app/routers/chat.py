@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
 from app.models import Conversation, Message
 from app.routers import get_current_user
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["orchestration"])
 
@@ -26,8 +28,8 @@ class ClassifyRequest(BaseModel):
 
 
 @router.post("/classify")
-async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user)):
-    from core.router.intent import IntentClassifier  # noqa: PLC0415
+async def classify(req: ClassifyRequest, user: Annotated[dict, Depends(get_current_user)]):
+    from core.router.intent import IntentClassifier
 
     classifier = IntentClassifier()
     result = classifier.classify(req.text)
@@ -42,9 +44,9 @@ class RouteRequest(BaseModel):
 
 
 @router.post("/route")
-async def route(req: RouteRequest, user: dict = Depends(get_current_user)):
-    from core.router.intent import IntentClassifier  # noqa: PLC0415
-    from core.router.selector import ModelSelector  # noqa: PLC0415
+async def route(req: RouteRequest, user: Annotated[dict, Depends(get_current_user)]):
+    from core.router.intent import IntentClassifier
+    from core.router.selector import ModelSelector
 
     classifier = IntentClassifier()
     selector = ModelSelector()
@@ -68,9 +70,9 @@ class EvaluateRequest(BaseModel):
 
 
 @router.post("/evaluate")
-async def evaluate(req: EvaluateRequest, user: dict = Depends(get_current_user)):
-    from core.governance.policy import PolicyEngine  # noqa: PLC0415
-    from core.governance.templates import PolicyTemplates  # noqa: PLC0415
+async def evaluate(req: EvaluateRequest, user: Annotated[dict, Depends(get_current_user)]):
+    from core.governance.policy import PolicyEngine
+    from core.governance.templates import PolicyTemplates
 
     engine = PolicyEngine()
     engine.add_rules(PolicyTemplates.get_cmmc_rules())
@@ -94,8 +96,8 @@ async def _stream_inference(
     background_tasks: BackgroundTasks,
 ):
     """Generator that streams tokens from LM Studio via SSE and saves to DB on completion."""
-    from core.router.intent import IntentClassifier  # noqa: PLC0415
-    from core.router.selector import ModelSelector  # noqa: PLC0415
+    from core.router.intent import IntentClassifier
+    from core.router.selector import ModelSelector
 
     classifier = IntentClassifier()
     selector = ModelSelector()
@@ -106,7 +108,7 @@ async def _stream_inference(
     tokens_used = 0
     stream_error: str | None = None
 
-    import httpx  # noqa: PLC0415
+    import httpx
 
     inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
 
@@ -228,12 +230,12 @@ class ChatRequest(BaseModel):
 async def chat(
     req: ChatRequest,
     background_tasks: BackgroundTasks,
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Non-streaming chat endpoint (backward compatible)."""
-    from core.router.intent import IntentClassifier  # noqa: PLC0415
-    from core.router.selector import ModelSelector  # noqa: PLC0415
+    from core.router.intent import IntentClassifier
+    from core.router.selector import ModelSelector
 
     # Get or create conversation
     if req.conversation_id:
@@ -276,7 +278,7 @@ async def chat(
     inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
 
     try:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         resp = httpx.post(
             f"{inference_url}/chat/completions",
@@ -325,8 +327,8 @@ async def chat(
 
 @router.get("/chat/stream")
 async def chat_stream(
-    message: str = Query(..., description="User message"),
-    conversation_id: int | None = Query(None, description="Existing conversation ID"),
+    message: Annotated[str, Query(description="User message")],
+    conversation_id: Annotated[int | None, Query(description="Existing conversation ID")] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -354,8 +356,8 @@ async def chat_stream(
         db.flush()
 
     # Store user message immediately
-    from core.router.intent import IntentClassifier  # noqa: PLC0415
-    from core.router.selector import ModelSelector  # noqa: PLC0415
+    from core.router.intent import IntentClassifier
+    from core.router.selector import ModelSelector
 
     classifier = IntentClassifier()
     selector = ModelSelector()
@@ -404,8 +406,8 @@ async def list_conversations(
 @router.get("/conversations/{conv_id}/messages")
 async def get_messages(
     conv_id: int,
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     conv = (
         db.query(Conversation)

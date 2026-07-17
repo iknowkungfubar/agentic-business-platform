@@ -15,15 +15,16 @@ import logging
 import os
 import time
 import uuid
-from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest
 from prometheus_client import CONTENT_TYPE_LATEST as PROMETHEUS_CONTENT_TYPE
+from prometheus_client import Counter, Histogram, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # ── OpenTelemetry Tracing ─────────────────────────────────────
 
@@ -34,9 +35,9 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
     Exports traces via OTLP if OTEL_EXPORTER_OTLP_ENDPOINT is set,
     otherwise uses the ConsoleSpanExporter for local debugging.
     """
-    from opentelemetry import trace  # noqa: PLC0415
-    from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION  # noqa: PLC0415
-    from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
+    from opentelemetry import trace
+    from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
+    from opentelemetry.sdk.trace import TracerProvider
 
     resource = Resource.create(
         {
@@ -49,14 +50,14 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
     # Configure exporter
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     if otlp_endpoint:
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter  # noqa: PLC0415
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
         exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
         provider.add_span_processor(BatchSpanProcessor(exporter))
     else:
-        from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor  # noqa: PLC0415
+        from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
         provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 
@@ -64,7 +65,7 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
 
     # Instrument FastAPI
     try:
-        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: PLC0415
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
         FastAPIInstrumentor().instrument()
     except Exception:
@@ -72,7 +73,7 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
 
     # Instrument HTTPX
     try:
-        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor  # noqa: PLC0415
+        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
         HTTPXClientInstrumentor().instrument()
     except Exception:
@@ -80,7 +81,7 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
 
     # Instrument SQLAlchemy
     try:
-        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor  # noqa: PLC0415
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
         SQLAlchemyInstrumentor().instrument()
     except Exception:
@@ -89,7 +90,7 @@ def setup_tracing(service_name: str = "turin-platform") -> None:
 
 def get_tracer(name: str = "turin-platform"):
     """Get an OpenTelemetry tracer for manual span creation."""
-    from opentelemetry import trace  # noqa: PLC0415
+    from opentelemetry import trace
 
     return trace.get_tracer(name)
 
@@ -109,7 +110,7 @@ def create_llm_span(
     PII is stripped via the DLP pipeline before attaching to span attributes.
     This enables prompt-level observability while maintaining data sovereignty.
     """
-    from opentelemetry import trace  # noqa: PLC0415
+    from opentelemetry import trace
 
     tracer = trace.get_tracer(tracer_name)
     span = tracer.start_span("llm.completion")
@@ -129,7 +130,7 @@ def create_llm_span(
 
 def get_trace_parent_header() -> dict[str, str] | None:
     """Get W3C traceparent from current span context for propagation."""
-    from opentelemetry import trace  # noqa: PLC0415
+    from opentelemetry import trace
 
     span = trace.get_current_span()
     if not span:
@@ -236,7 +237,7 @@ def register_metrics_endpoint(app: FastAPI) -> None:
     """Register the /metrics endpoint on the app."""
 
     @app.get("/metrics", include_in_schema=False)
-    async def metrics() -> Response:  # noqa: PLC0415
+    async def metrics() -> Response:
         return Response(
             content=generate_latest(),
             media_type=PROMETHEUS_CONTENT_TYPE,

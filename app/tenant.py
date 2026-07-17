@@ -10,10 +10,14 @@ organization_id, RLS will silently apply the correct filter.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
-from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from fastapi import Request, Response
 
 
 class TenantContextMiddleware(BaseHTTPMiddleware):
@@ -38,8 +42,9 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             auth = request.headers.get("authorization", "")
             if auth.startswith("Bearer "):
                 try:
-                    from app.auth import validate_oidc_token  # noqa: PLC0415
-                    import asyncio  # noqa: PLC0415
+                    import asyncio
+
+                    from app.auth import validate_oidc_token
 
                     payload = asyncio.run(validate_oidc_token(auth[7:]))
                     if payload:
@@ -52,8 +57,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
         # Store on request state for session factory to use
         request.state.tenant_id = org_id
 
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 
 
 class TenantSessionFilter:

@@ -13,7 +13,6 @@ robustness) by improving models without exposing tenant PII.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from typing import Any
@@ -32,7 +31,7 @@ async def federated_learning_round(ctx: dict) -> dict[str, Any]:
     """
     logger.info("federated_round_started")
 
-    from sqlalchemy import create_engine, text  # noqa: PLC0415
+    from sqlalchemy import create_engine, text
 
     db_url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
     engine = create_engine(db_url)
@@ -84,14 +83,15 @@ async def federated_learning_round(ctx: dict) -> dict[str, Any]:
                 # PQC-encrypt the gradient payload
                 if pqc_public_key and aggregation_url:
                     try:
-                        from core.security.pqc import sign_payload  # noqa: PLC0415
                         import json as _json
 
-                        payload_str = _json.dumps(gradient_delta, default=str)
+                        from core.security.pqc import sign_payload
+
+                        _json.dumps(gradient_delta, default=str)
                         # Encrypt using public key
                         encrypted = sign_payload(gradient_delta, pqc_public_key)
 
-                        import httpx  # noqa: PLC0415
+                        import httpx
 
                         async with httpx.AsyncClient(timeout=30) as client:
                             await client.post(
@@ -104,7 +104,7 @@ async def federated_learning_round(ctx: dict) -> dict[str, Any]:
                             )
                         logger.info("federated_gradient_pushed", extra={"org_id": org_id, "samples": total})
                     except Exception as exc:
-                        logger.error("federated_push_failed", extra={"org_id": org_id, "error": str(exc)})
+                        logger.exception("federated_push_failed", extra={"org_id": org_id, "error": str(exc)})
 
                 # Record the round locally
                 conn.execute(
@@ -126,7 +126,7 @@ async def federated_learning_round(ctx: dict) -> dict[str, Any]:
         return {"status": "completed"}
 
     except Exception as exc:
-        logger.error("federated_round_failed", extra={"error": str(exc)})
+        logger.exception("federated_round_failed", extra={"error": str(exc)})
         raise
     finally:
         engine.dispose()

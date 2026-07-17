@@ -11,12 +11,8 @@ a severely restricted subprocess with:
 from __future__ import annotations
 
 import multiprocessing
-import os
 import resource
-import signal
 import sys
-import threading
-import time
 from typing import Any
 
 # Python built-ins safe for agent execution
@@ -113,7 +109,7 @@ def run_sandboxed(code: str, timeout: int = 30, memory_mb: int = 128) -> Sandbox
             }
 
             # Capture stdout
-            from io import StringIO  # noqa: PLC0415
+            from io import StringIO
 
             stdout_capture = StringIO()
             old_stdout = sys.stdout

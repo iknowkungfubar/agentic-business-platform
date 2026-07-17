@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -18,9 +20,9 @@ class EvalRunRequest(BaseModel):
 
 
 @router.post("/run")
-async def run_eval(req: EvalRunRequest, user: dict = Depends(get_current_user)):
+async def run_eval(req: EvalRunRequest, user: Annotated[dict, Depends(get_current_user)]):
     """Evaluate an agent output against default criteria and return results."""
-    from core.governance.eval import AgentEvalSuite, EvalCriterion  # noqa: PLC0415
+    from core.governance.eval import AgentEvalSuite, EvalCriterion
 
     suite = AgentEvalSuite()
     suite.add_criterion(EvalCriterion("correctness", weight=0.4))
@@ -48,14 +50,14 @@ async def run_eval(req: EvalRunRequest, user: dict = Depends(get_current_user)):
 @router.get("/results/{result_id}")
 async def get_eval_result(
     result_id: str,
-    user: dict = Depends(get_current_user),
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     """Get a specific evaluation result by ID.
 
     Note: Eval results are in-memory and only available for the current
     process lifetime. Persistent storage requires database integration.
     """
-    from core.governance.eval import AgentEvalSuite  # noqa: PLC0415
+    from core.governance.eval import AgentEvalSuite
 
     suite = AgentEvalSuite()
     history = suite.get_history(limit=1000)
@@ -76,9 +78,8 @@ async def get_eval_result(
 
 
 @router.get("/criteria")
-async def list_criteria(user: dict = Depends(get_current_user)):
+async def list_criteria(user: Annotated[dict, Depends(get_current_user)]):
     """List available evaluation criteria with descriptions."""
-    from core.governance.eval import EvalCriterion  # noqa: PLC0415
 
     return {
         "criteria": [
@@ -96,7 +97,7 @@ async def eval_history(
     user: dict = Depends(get_current_user),
 ):
     """Get evaluation history (note: in-memory, resets on restart)."""
-    from core.governance.eval import AgentEvalSuite  # noqa: PLC0415
+    from core.governance.eval import AgentEvalSuite
 
     suite = AgentEvalSuite()
     history = suite.get_history(agent_id=agent_id, limit=limit)

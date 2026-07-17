@@ -51,7 +51,7 @@ async def generate_embedding(text: str, model: str | None = None) -> list[float]
     Retries up to 3 times with exponential backoff + jitter on transient
     failures. Returns None if all retries are exhausted (graceful fallback).
     """
-    import httpx  # noqa: PLC0415
+    import httpx
 
     inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
     embed_model = model or "nomic-embed-text-v1.5"
@@ -65,18 +65,17 @@ async def generate_embedding(text: str, model: str | None = None) -> list[float]
             if resp.status_code == 200:
                 data = resp.json()
                 return data.get("data", [{}])[0].get("embedding")
-            else:
-                logger.warning("embedding_api_error", extra={"status": resp.status_code, "model": embed_model})
-                return None
+            logger.warning("embedding_api_error", extra={"status": resp.status_code, "model": embed_model})
+            return None
     except RETRYABLE_EXCEPTIONS:
-        logger.error("embedding_retries_exhausted", extra={"model": embed_model})
+        logger.exception("embedding_retries_exhausted", extra={"model": embed_model})
         return None
 
 
 @retry(**RETRY_CONFIG)
 async def generate_embeddings_batch(texts: list[str], model: str | None = None) -> list[list[float] | None]:
     """Generate embeddings for multiple texts with retry logic."""
-    import httpx  # noqa: PLC0415
+    import httpx
 
     inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
     embed_model = model or "nomic-embed-text-v1.5"
@@ -96,6 +95,6 @@ async def generate_embeddings_batch(texts: list[str], model: str | None = None) 
                         results[idx] = item.get("embedding")
                 return results
     except RETRYABLE_EXCEPTIONS:
-        logger.error("embedding_batch_retries_exhausted", extra={"model": embed_model, "count": len(texts)})
+        logger.exception("embedding_batch_retries_exhausted", extra={"model": embed_model, "count": len(texts)})
 
     return [None] * len(texts)

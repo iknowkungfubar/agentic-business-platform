@@ -8,12 +8,12 @@ Threshold: > 0.95 cosine similarity = cache hit.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING
 
-from sqlalchemy import func, text
-from sqlalchemy.orm import Session
+from sqlalchemy import text
 
-from app.models import SemanticCache
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 CACHE_TTL_HOURS = 24
 SIMILARITY_THRESHOLD = 0.95
@@ -27,7 +27,7 @@ async def get_cached_response(query: str, org_id: int | None, db: Session) -> st
 
     Returns the cached response text if found, None otherwise.
     """
-    from core.pipeline.embed import generate_embedding  # noqa: PLC0415
+    from core.pipeline.embed import generate_embedding
 
     embedding = await generate_embedding(query)
     if not embedding:
@@ -85,7 +85,7 @@ async def set_cached_response(
     The embedding is generated and stored alongside the response text.
     TTL is 24 hours by default.
     """
-    from core.pipeline.embed import generate_embedding  # noqa: PLC0415
+    from core.pipeline.embed import generate_embedding
 
     embedding = await generate_embedding(query)
     if not embedding:

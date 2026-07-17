@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import init_db
+from app.middleware import TokenBucketRateLimiter
 from app.routers.a2a import router as a2a_router
 from app.routers.admin import router as admin_router
 from app.routers.agents import router as agents_router
@@ -37,10 +38,6 @@ from app.routers.prompts import router as prompts_router
 from app.routers.sbom import router as sbom_router
 from app.routers.tenant import router as tenant_router
 from app.routers.workflows import router as workflows_router
-from app.ws import manager as ws_manager
-from app.ws_voice import manager as voice_manager
-
-from app.middleware import TokenBucketRateLimiter
 from app.telemetry import (
     MetricsMiddleware,
     RequestIDMiddleware,
@@ -49,7 +46,9 @@ from app.telemetry import (
     setup_logging,
     setup_tracing,
 )
-from app.tenant import TenantContextMiddleware, TenantSessionFilter
+from app.tenant import TenantContextMiddleware
+from app.ws import manager as ws_manager
+from app.ws_voice import manager as voice_manager
 
 setup_logging()
 setup_tracing()
@@ -63,7 +62,7 @@ def _wait_for_db() -> None:
     """Retry connecting to the database with backoff for PostgreSQL startup race."""
     for attempt in range(1, _MAX_DB_RETRIES + 1):
         try:
-            from app.database import _get_write_engine as _get_engine  # noqa: PLC0415
+            from app.database import _get_write_engine as _get_engine
 
             conn = _get_engine().connect()
             conn.execute(text("SELECT 1"))
@@ -78,7 +77,7 @@ def _wait_for_db() -> None:
                 )
                 time.sleep(_DB_RETRY_DELAY)
             else:
-                logger.error(
+                logger.exception(
                     "db_unreachable",
                     extra={"attempt": attempt, "max_retries": _MAX_DB_RETRIES, "error": str(exc)},
                 )
@@ -94,8 +93,8 @@ def _run_migrations() -> None:
     if os.environ.get("DISABLE_MIGRATIONS", "").lower() in ("1", "true", "yes"):
         return
     try:
-        from alembic import command  # noqa: PLC0415
-        from alembic.config import Config  # noqa: PLC0415
+        from alembic import command
+        from alembic.config import Config
 
         alembic_cfg = Config("alembic.ini")
         command.upgrade(alembic_cfg, "head")
@@ -152,7 +151,7 @@ app.add_middleware(TokenBucketRateLimiter)
 register_metrics_endpoint(app)
 
 # ── Error handlers ───────────────────────────────────────────────
-from app.errors import register_error_handlers  # noqa: PLC0415
+from app.errors import register_error_handlers
 
 register_error_handlers(app)
 

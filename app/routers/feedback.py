@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Annotated
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import LLMFeedback
 from app.routers import get_current_user
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/feedback", tags=["feedback"])
 
@@ -24,8 +28,8 @@ class FeedbackRequest(BaseModel):
 @router.post("")
 async def submit_feedback(
     req: FeedbackRequest,
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Submit user feedback on an LLM response for RLHF collection."""
     if req.rating not in (+1, -1):

@@ -11,7 +11,7 @@ import os
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -31,14 +31,14 @@ def _get_agents() -> list[dict[str, Any]]:
     """Get all agents from the ACP inventory database."""
     db_path = _get_db_path()
     try:
-        import agent_control_plane.inventory as acp_inv  # noqa: PLC0415
+        import agent_control_plane.inventory as acp_inv
 
         conn = acp_inv.get_connection(db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT id, name, url, provider, status, tags, created_at, last_seen FROM agents ORDER BY name")
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in rows]
+        return [dict(zip(columns, row, strict=False)) for row in rows]
     except Exception:
         return _get_agents_fallback(db_path)
 
@@ -110,8 +110,8 @@ class AgentCreateRequest(BaseModel):
 
 @router.get("")
 async def list_agents(
-    page_params: PaginationParams = Depends(),
-    user: dict = Depends(get_current_user),
+    page_params: Annotated[PaginationParams, Depends()],
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     agents = _get_agents()
     offset = page_params.offset
@@ -129,11 +129,10 @@ async def list_agents(
 @router.post("")
 async def register_agent(
     req: AgentCreateRequest,
-    user: dict = Depends(require_role("operator")),
+    user: Annotated[dict, Depends(require_role("operator"))],
 ):
     try:
-        result = _add_agent(name=req.name, url=req.url, provider=req.provider, tags=req.tags)
-        return result
+        return _add_agent(name=req.name, url=req.url, provider=req.provider, tags=req.tags)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Failed to register agent: {exc}")
 
@@ -141,7 +140,7 @@ async def register_agent(
 @router.get("/{agent_id}")
 async def get_agent(
     agent_id: int,
-    user: dict = Depends(get_current_user),
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     agents = [a for a in _get_agents() if a.get("id") == agent_id]
     if not agents:
@@ -152,9 +151,9 @@ async def get_agent(
 @router.post("/{agent_id}/health")
 async def check_agent_health(
     agent_id: int,
-    user: dict = Depends(require_role("operator")),
+    user: Annotated[dict, Depends(require_role("operator"))],
 ):
-    import httpx  # noqa: PLC0415
+    import httpx
 
     agents = [a for a in _get_agents() if a.get("id") == agent_id]
     if not agents:

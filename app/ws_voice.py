@@ -15,8 +15,6 @@ Protocol:
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import logging
 import os
@@ -94,9 +92,11 @@ class WebRTCSignalingManager:
         3. Send transcript to LLM chat endpoint
         4. Stream TTS audio response back via WebRTC data channel
         """
-        import httpx  # noqa: PLC0415
-        from app.config import settings  # noqa: PLC0415
-        import base64  # noqa: PLC0415
+        import base64
+
+        import httpx
+
+        from app.config import settings
 
         inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
 

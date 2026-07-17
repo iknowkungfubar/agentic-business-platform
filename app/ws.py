@@ -14,11 +14,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
-
-from fastapi import WebSocket
+from typing import TYPE_CHECKING, Any
 
 from app.auth import decode_token
+
+if TYPE_CHECKING:
+    from fastapi import WebSocket
 
 
 class DistributedConnectionManager:
@@ -33,7 +34,7 @@ class DistributedConnectionManager:
         self._pubsubs: dict[int, Any] = {}  # org_id → Redis pubsub listener
 
     def _get_redis(self):
-        from redis.asyncio import Redis  # noqa: PLC0415
+        from redis.asyncio import Redis
 
         return Redis(
             host=os.getenv("REDIS_HOST", "redis"),
@@ -78,7 +79,7 @@ class DistributedConnectionManager:
             await pubsub.subscribe(f"org:{org_id}:events")
             self._pubsubs[org_id] = (r, pubsub)
             # Start background listener
-            import asyncio  # noqa: PLC0415
+            import asyncio
 
             asyncio.create_task(self._listen_org(org_id, pubsub))
         except Exception:

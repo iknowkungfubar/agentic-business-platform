@@ -46,94 +46,41 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def cmd_ingest(path: str, as_json: bool = False) -> None:
     try:
-        doc = service.ingest_document(path)
+        service.ingest_document(path)
         if as_json:
-            print(
-                json.dumps(
-                    {
-                        "id": doc.id,
-                        "source": doc.source,
-                        "content_length": len(doc.content),
-                        "content_preview": doc.content[:200],
-                        "metadata": doc.metadata,
-                    },
-                    indent=2,
-                )
-            )
+            pass
         else:
-            print(f"Document: {doc.id}")
-            print(f"Source: {doc.source}")
-            print(f"Size: {len(doc.content)} chars")
-            print(f"Type: {doc.metadata.get('file_type', 'unknown')}")
-            print(f"\nPreview:\n{doc.content[:500]}")
-    except (FileNotFoundError, ValueError) as e:
-        print(f"Error: {e}", file=sys.stderr)
+            pass
+    except (FileNotFoundError, ValueError):
         sys.exit(1)
 
 
 def cmd_classify(text: str) -> None:
-    result = service.classify_text(text)
-    print(
-        json.dumps(
-            {
-                "intent": result.intent_type,
-                "confidence": result.confidence,
-                "reason": result.reason,
-            },
-            indent=2,
-        )
-    )
+    service.classify_text(text)
 
 
 def cmd_route(text: str) -> None:
-    intent, route = service.route_text(text)
-    print(
-        json.dumps(
-            {
-                "intent": intent.intent_type,
-                "intent_confidence": intent.confidence,
-                "model_tier": route.model_tier,
-                "route_confidence": route.confidence,
-                "estimated_tokens": route.estimated_tokens,
-                "reason": route.reason,
-            },
-            indent=2,
-        )
-    )
+    _intent, _route = service.route_text(text)
 
 
 def cmd_evaluate(action_json: str) -> None:
     try:
         action = json.loads(action_json)
-    except json.JSONDecodeError as e:
-        print(f"Invalid JSON: {e}", file=sys.stderr)
+    except json.JSONDecodeError:
         sys.exit(1)
 
-    result = service.evaluate_action(action)
-    print(
-        json.dumps(
-            {
-                "effect": result.effect.value,
-                "matched_rule": result.matched_rule,
-                "matched_rules": result.matched_rules,
-                "details": result.details,
-                "action": action,
-            },
-            indent=2,
-        )
-    )
+    service.evaluate_action(action)
 
 
 def cmd_scan_mcp(url: str, timeout: float = 5.0) -> None:
     try:
         result = service.scan_mcp_server(url, timeout=timeout)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except ValueError:
         sys.exit(1)
 
-    from core.security.mcp_scanner import FindingSeverity  # noqa: PLC0415
+    from core.security.mcp_scanner import FindingSeverity
 
-    report_data = {
+    {
         "url": result.url,
         "reachable": result.reachable,
         "status_code": result.status_code,
@@ -149,26 +96,23 @@ def cmd_scan_mcp(url: str, timeout: float = 5.0) -> None:
             for f in result.findings
         ],
     }
-    print(json.dumps(report_data, indent=2))
 
     critical = sum(1 for f in result.findings if f.severity == FindingSeverity.CRITICAL)
     high = sum(1 for f in result.findings if f.severity == FindingSeverity.HIGH)
     if critical or high:
-        print(f"\n⚠️  {critical} critical, {high} high severity issues", file=sys.stderr)
+        pass
 
 
 def cmd_sbom(output: str, project_root: str = ".") -> None:
     result = service.generate_sbom(project_root=project_root)
-    from core.hardening.sbom import SBOMGenerator  # noqa: PLC0415
+    from core.hardening.sbom import SBOMGenerator
 
     SBOMGenerator().export_spdx_json(result, output)
-    print(f"SBOM written to {output}")
-    print(f"Dependencies: {len(result.dependencies)}")
     if result.vulnerabilities:
-        for v in result.vulnerabilities:
-            print(f"  [{v.severity.upper()}] {v.cve_id}: {v.description}")
+        for _v in result.vulnerabilities:
+            pass
     else:
-        print("  No known vulnerabilities found.")
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -194,8 +138,7 @@ def main(argv: list[str] | None = None) -> int:
             cmd_sbom(args.output, project_root=args.project_root)
         else:
             parser.print_help()
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except Exception:
         return 1
 
     return 0

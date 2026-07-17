@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import MCPScanResult
 from app.pagination import PaginationParams, paginate
 from app.routers import get_current_user, require_role
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["mcp"])
 
@@ -24,11 +27,11 @@ class ScanMCPRequest(BaseModel):
 @router.post("/scan-mcp")
 async def scan_mcp(
     req: ScanMCPRequest,
-    user: dict = Depends(require_role("operator")),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(require_role("operator"))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Scan an MCP server for security issues and store the result."""
-    from core.security.mcp_scanner import FindingSeverity, MCPScanner  # noqa: PLC0415
+    from core.security.mcp_scanner import FindingSeverity, MCPScanner
 
     scanner = MCPScanner(timeout=req.timeout)
     try:
@@ -73,9 +76,9 @@ async def scan_mcp(
 
 @router.get("/mcp/results")
 async def list_scan_results(
-    page_params: PaginationParams = Depends(),
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    page_params: Annotated[PaginationParams, Depends()],
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """List previous MCP scan results."""
     query = (

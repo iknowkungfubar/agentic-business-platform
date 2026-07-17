@@ -19,7 +19,7 @@ e2e = pytest.mark.skipif(
 
 def _wait_for_api(timeout: int = 60, interval: int = 2) -> None:
     """Wait until the API health endpoint responds 200."""
-    for attempt in range(timeout // interval):
+    for _attempt in range(timeout // interval):
         try:
             r = requests.get(f"{API_URL}/health", timeout=5)
             if r.status_code == 200:
@@ -53,7 +53,7 @@ def stack_setup():
         capture_output=True,
     )
     _wait_for_api()
-    yield
+    return
     # Teardown is manual in CI; for local dev, stop with:
     # docker compose -f docker-compose.test.yml down
 

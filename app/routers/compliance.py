@@ -3,22 +3,25 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AuditEvent
 from app.routers import get_current_user
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
 
 
 @router.post("/report")
 async def generate_compliance_report(
-    period_days: int = Query(90, ge=1, le=365, description="Lookback period in days"),
-    framework: str = Query("CMMC-2.0", description="Compliance framework"),
+    period_days: Annotated[int, Query(ge=1, le=365, description="Lookback period in days")] = 90,
+    framework: Annotated[str, Query(description="Compliance framework")] = "CMMC-2.0",
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -83,7 +86,7 @@ async def generate_compliance_report(
     adherence_score = round(allowed / max(total_decisions, 1) * 100, 1) if total_decisions > 0 else 0.0
 
     # CMMC-specific control mapping based on action types present
-    controls_present = set(row.action_type for row in action_types)
+    controls_present = {row.action_type for row in action_types}
 
     cmmc_controls = [
         {
@@ -147,8 +150,8 @@ async def generate_compliance_report(
 
 @router.get("/status")
 async def compliance_status(
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Get current compliance posture summary from audit data."""
     org_id = user.get("org_id")
@@ -174,8 +177,8 @@ async def compliance_status(
 
 @router.get("/reports")
 async def list_reports(
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """List compliance report history from audit data."""
     org_id = user.get("org_id")

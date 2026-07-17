@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from tests.helpers import auth_headers
-
 
 class TestDashboard:
     """Admin dashboard endpoint tests."""
@@ -15,9 +13,9 @@ class TestDashboard:
 
     def test_dashboard_returns_html(self, api_client):
         """GET /admin/dashboard returns HTML page for operator role."""
-        from tests.helpers import register_user
         from app.database import get_db
         from app.models import User
+        from tests.helpers import register_user
 
         data = register_user(api_client, email="op@dashboard.com", password="pass")
         token = data["access_token"]

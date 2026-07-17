@@ -7,10 +7,12 @@ of both dense (semantic) and sparse (keyword) retrieval.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 # RRF constant — typical k value
 RRF_K = 60
@@ -95,8 +97,7 @@ def hybrid_search(
         pass
 
     # Reciprocal Rank Fusion
-    fused = _rrf_fuse(semantic_results, keyword_results, top_k)
-    return fused
+    return _rrf_fuse(semantic_results, keyword_results, top_k)
 
 
 def _rrf_fuse(

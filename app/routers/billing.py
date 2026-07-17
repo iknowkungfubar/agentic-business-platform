@@ -3,22 +3,25 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Conversation, Message
 from app.models.user import UserRole
-from app.routers import RequireRole, get_current_user
+from app.routers import RequireRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 
 @router.get("/usage")
 async def get_usage(
-    period_days: int = Query(30, ge=1, le=365),
+    period_days: Annotated[int, Query(ge=1, le=365)] = 30,
     user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
     db: Session = Depends(get_db),
 ):

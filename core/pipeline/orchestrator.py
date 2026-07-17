@@ -11,9 +11,10 @@ import json
 import os
 import random
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.orm import Session
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 
 class DAGNode:
@@ -85,7 +86,7 @@ class DAGOrchestrator:
 
     async def execute(self, workflow: WorkflowDefinition, org_id: int) -> dict[str, Any]:
         """Execute a workflow from start to finish with persistence."""
-        from app.models import WorkflowExecution  # noqa: PLC0415
+        from app.models import WorkflowExecution
 
         # Create or load execution record
         if self.execution_id:
@@ -178,13 +179,13 @@ class DAGOrchestrator:
             failure_type = random.choice(["db_lock", "http_503", "timeout"])
             if failure_type == "db_lock":
                 raise Exception("Chaos: Simulated DatabaseLockException")
-            elif failure_type == "http_503":
+            if failure_type == "http_503":
                 raise Exception("Chaos: Simulated HTTP 503 Service Unavailable")
-            else:
-                raise TimeoutError("Chaos: Simulated node timeout")
+            raise TimeoutError("Chaos: Simulated node timeout")
 
-        import httpx  # noqa: PLC0415
-        from app.config import settings  # noqa: PLC0415
+        import httpx
+
+        from app.config import settings
 
         inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
         async with httpx.AsyncClient(timeout=60) as client:

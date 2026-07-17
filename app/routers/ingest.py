@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
+from typing import Annotated
 
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -29,7 +30,7 @@ _redis_settings = RedisSettings(
 @router.post("/documents/ingest")
 async def ingest_document(
     file: UploadFile,
-    user: dict = Depends(get_current_user),
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     """Upload a document for async ingestion.
 
@@ -80,7 +81,7 @@ async def ingest_document(
 @router.get("/documents/status/{task_id}")
 async def document_status(
     task_id: str,
-    user: dict = Depends(get_current_user),
+    user: Annotated[dict, Depends(get_current_user)],
 ):
     """Poll the status of a document ingestion task."""
     status = await get_task_status(task_id)

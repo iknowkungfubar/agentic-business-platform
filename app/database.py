@@ -9,13 +9,16 @@ Supports:
 from __future__ import annotations
 
 import os
-from typing import Any, Generator
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 from app.tenant import TenantSessionFilter
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 _write_engine: Any = None
 _read_engine: Any = None

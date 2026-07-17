@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import json
-import secrets
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import WorkflowExecution
 from app.models.user import UserRole
-from app.routers import RequireRole, get_current_user
+from app.routers import RequireRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 
@@ -26,8 +28,8 @@ class ApprovalRequest(BaseModel):
 async def approve_workflow(
     workflow_id: int,
     req: ApprovalRequest,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Approve or reject a HITL workflow suspension.
 
@@ -52,9 +54,8 @@ async def approve_workflow(
 
     # Check the user's role matches the required role
     required_role = wf.awaiting_approval_from_role
-    if required_role and user.get("role", "") != required_role:
-        if user.get("role", "") not in ("superadmin",):
-            raise HTTPException(status_code=403, detail=f"Only {required_role} role can approve this step")
+    if required_role and user.get("role", "") != required_role and user.get("role", "") != "superadmin":
+        raise HTTPException(status_code=403, detail=f"Only {required_role} role can approve this step")
 
     if not req.approved:
         wf.status = "REJECTED"
@@ -63,8 +64,9 @@ async def approve_workflow(
         return {"status": "REJECTED", "workflow_id": workflow_id}
 
     # Approve — push resume event to Redis
-    import os  # noqa: PLC0415
-    from redis import Redis  # noqa: PLC0415
+    import os
+
+    from redis import Redis
 
     redis_host = os.getenv("REDIS_HOST", "redis")
     redis_port = int(os.getenv("REDIS_PORT", "6379"))

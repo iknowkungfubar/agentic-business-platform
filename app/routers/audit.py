@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc
-from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AuditEvent
 from app.pagination import PaginationParams, paginate
 from app.routers import get_current_user
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
 router = APIRouter(tags=["audit"])
 
 
 @router.get("/events")
 async def list_audit_events(
-    page_params: PaginationParams = Depends(),
-    action_type: str | None = Query(None, description="Filter by action type"),
-    resource_type: str | None = Query(None, description="Filter by resource type"),
+    page_params: Annotated[PaginationParams, Depends()],
+    action_type: Annotated[str | None, Query(description="Filter by action type")] = None,
+    resource_type: Annotated[str | None, Query(description="Filter by resource type")] = None,
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -51,8 +55,8 @@ async def list_audit_events(
 @router.get("/events/{event_id}")
 async def get_audit_event(
     event_id: int,
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Get a single audit event with full details."""
     event = (
@@ -82,8 +86,8 @@ async def get_audit_event(
 
 @router.get("/integrity")
 async def audit_integrity(
-    user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Verify audit log chain integrity (checks event count and sequence).
 

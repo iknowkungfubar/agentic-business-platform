@@ -8,7 +8,6 @@ Returns a GuardrailResult with pass/fail status, risk score, and violation detai
 
 from __future__ import annotations
 
-import hashlib
 import math
 import os
 import re
@@ -155,7 +154,7 @@ async def _llm_evaluate(prompt: str) -> dict[str, Any]:
     the configured INFERENCE_URL. Falls back to a strict prompt-based check
     if no safety model is available.
     """
-    import httpx  # noqa: PLC0415
+    import httpx
 
     inference_url = os.getenv("INFERENCE_URL", settings.inference_url)
 

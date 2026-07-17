@@ -11,17 +11,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import secrets
 import time
-import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 from jose import JWTError, jwt
 from jose.constants import Algorithms
-from pydantic import BaseModel
 
 from app.config import settings
 
@@ -126,13 +123,12 @@ async def validate_oidc_token(token: str) -> dict[str, Any] | None:
     # Try each key until one validates
     for key_data in keys:
         try:
-            payload = jwt.decode(
+            return jwt.decode(
                 token,
                 key_data,
                 algorithms=[Algorithms.RS256, Algorithms.RS384, Algorithms.RS512],
                 options={"verify_aud": False},
             )
-            return payload
         except JWTError:
             continue
 

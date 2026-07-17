@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi.testclient import TestClient
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @pytest.fixture(autouse=True)
@@ -24,7 +27,6 @@ def test_db(tmp_path: pytest.TempPathFactory) -> Generator[None, None, None]:
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
     import app.database as app_db
-    import app.models  # noqa: PLC0415 — register all models with Base.metadata
 
     app_db.reset_engine()
     app_db.init_db()
@@ -52,6 +54,6 @@ def api_client() -> TestClient:
     # However, alembic's env.py reads DATABASE_URL at env.py runtime,
     # which happens during _run_migrations() -> alembic upgrade head.
     # This is the correct ordering — test_db runs first, then api_client.
-    from app.api import app  # noqa: PLC0415
+    from app.api import app
 
     return TestClient(app)

@@ -211,7 +211,7 @@ async def dispatch_audit_webhook(ctx: dict, event_data: dict, webhook_url: str, 
     Signs the payload with HMAC-SHA256 using the tenant's webhook_secret
     and sends it to the configured siem_webhook_url.
     """
-    import httpx  # noqa: PLC0415
+    import httpx
 
     payload_bytes = json.dumps(event_data, default=str).encode("utf-8")
 
@@ -241,7 +241,7 @@ async def dispatch_audit_webhook(ctx: dict, event_data: dict, webhook_url: str, 
             )
             return {"status": resp.status_code, "sent": True}
     except Exception as exc:
-        logger.error("webhook_dispatch_failed", extra={"url": webhook_url, "error": str(exc)})
+        logger.exception("webhook_dispatch_failed", extra={"url": webhook_url, "error": str(exc)})
         return {"status": 0, "sent": False, "error": str(exc)}
 
 
@@ -255,8 +255,8 @@ async def daily_usage_metering(ctx: dict) -> dict[str, Any]:
     previous 24 hours, grouped by organization_id. Pushes to configured
     billing provider if URL is set.
     """
-    import httpx  # noqa: PLC0415
-    from sqlalchemy import create_engine, text  # noqa: PLC0415
+    import httpx
+    from sqlalchemy import create_engine, text
 
     logger = logging.getLogger("turin-platform.metering")
     cutoff = datetime.now(UTC) - timedelta(hours=24)
@@ -312,7 +312,7 @@ async def daily_usage_metering(ctx: dict) -> dict[str, Any]:
                             extra={"org_id": org_id, "status": resp.status_code, "tokens": tokens},
                         )
                 except Exception as exc:
-                    logger.error("billing_push_failed", extra={"org_id": org_id, "error": str(exc)})
+                    logger.exception("billing_push_failed", extra={"org_id": org_id, "error": str(exc)})
 
         logger.info("metering_complete", extra={"organizations": len(results), "period_hours": 24})
         return {"organizations": len(results), "results": results}
@@ -331,8 +331,8 @@ async def eu_ai_act_monitor(ctx: dict) -> dict[str, Any]:
     PII leakage, and statistical drift. Saves results to DriftReport table.
     Triggers CRITICAL alert if thresholds are exceeded.
     """
-    import httpx  # noqa: PLC0415
-    from sqlalchemy import create_engine, text  # noqa: PLC0415
+    import httpx
+    from sqlalchemy import create_engine, text
 
     logger = logging.getLogger("turin-platform.eu-ai-act")
     db_url = os.getenv("DATABASE_URL", "sqlite:///./turin.db")
@@ -420,7 +420,7 @@ async def eu_ai_act_monitor(ctx: dict) -> dict[str, Any]:
                     )
                     # Dispatch critical alert via event bus
                     try:
-                        from app.events import publish_event  # noqa: PLC0415
+                        from app.events import publish_event
 
                         await publish_event(
                             "compliance.critical",
@@ -465,13 +465,11 @@ async def eu_ai_act_monitor(ctx: dict) -> dict[str, Any]:
 async def startup(ctx: dict) -> None:
     """ARQ worker startup hook."""
     ctx["redis"] = Redis.from_url(worker_settings.redis_url)
-    print(f"[worker] Started — connected to {worker_settings.redis_url}")
 
 
 async def shutdown(ctx: dict) -> None:
     """ARQ worker shutdown hook."""
     await ctx["redis"].aclose()
-    print("[worker] Shutdown complete")
 
 
 class WorkerSettings:
@@ -494,6 +492,7 @@ class WorkerSettings:
 
 if __name__ == "__main__":
     import asyncio
+
     from arq import create_pool
     from arq.connections import RedisSettings
     from arq.worker import Worker as ArqWorker

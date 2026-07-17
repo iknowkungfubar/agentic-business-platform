@@ -11,7 +11,7 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     """Enterprise RBAC roles — strict hierarchy for B2B compliance.
 
     SUPERADMIN: Platform-level admin, can manage organizations and all tenants.

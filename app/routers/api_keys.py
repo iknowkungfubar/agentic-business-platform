@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.auth import generate_api_key, verify_api_key
+from app.auth import generate_api_key
 from app.database import get_db
 from app.models import APIKey
 from app.models.user import UserRole
-from app.routers import RequireRole, get_current_user
+from app.routers import RequireRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/api-keys", tags=["api-keys"])
 
@@ -27,8 +30,8 @@ class CreateAPIKeyRequest(BaseModel):
 @router.post("")
 async def create_api_key(
     req: CreateAPIKeyRequest,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN, UserRole.SUPERADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Generate a new scoped API key. Raw key is shown only once."""
     raw, key_hash, key_prefix = generate_api_key()
@@ -58,8 +61,8 @@ async def create_api_key(
 
 @router.get("")
 async def list_api_keys(
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """List all API keys for the organization."""
     keys = (
@@ -88,8 +91,8 @@ async def list_api_keys(
 @router.delete("/{key_id}")
 async def revoke_api_key(
     key_id: int,
-    user: dict = Depends(RequireRole(UserRole.ORG_ADMIN)),
-    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(RequireRole(UserRole.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
 ):
     """Revoke an API key by setting it inactive."""
     key = (

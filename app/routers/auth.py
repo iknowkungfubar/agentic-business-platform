@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.auth import (
     create_access_token,
@@ -16,6 +17,9 @@ from app.auth import (
 from app.database import get_db
 from app.models import APIKey, Organization, User
 from app.routers import get_current_user, require_role
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -39,7 +43,7 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest, db: Session = Depends(get_db)):
+async def register(req: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
     existing = db.query(User).filter(User.email == req.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -73,7 +77,7 @@ async def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: Session = Depends(get_db)):
+async def login(req: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -91,7 +95,7 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me")
-async def me(user: dict = Depends(get_current_user)):
+async def me(user: Annotated[dict, Depends(get_current_user)]):
     return user
 
 
