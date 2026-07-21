@@ -59,7 +59,7 @@ def analyze(text: str) -> DLPResult:
 
     for pii_type, description, pattern in PI_PATTERNS:
 
-        def make_replacer(pii_type: str, mapping: dict, counters: dict, findings: list) -> callable:
+        def make_replacer(pii_type: str, description: str, mapping: dict, counters: dict, findings: list) -> callable:
             def replacer(match: re.Match) -> str:
                 original = match.group(0)
                 counters.setdefault(pii_type, 0)
@@ -80,7 +80,7 @@ def analyze(text: str) -> DLPResult:
 
             return replacer
 
-        masked = pattern.sub(make_replacer(pii_type, mapping, counters, findings), masked)
+        masked = pattern.sub(make_replacer(pii_type, description, mapping, counters, findings), masked)
 
     return DLPResult(masked_text=masked, mapping=mapping, findings=findings)
 

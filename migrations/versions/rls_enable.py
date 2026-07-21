@@ -6,14 +6,15 @@ defense — even if a query forgets the WHERE org clause, RLS enforces it.
 
 SQLite is unaffected (no RLS support).
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 from alembic import op
 
 revision: str = "rls_enable"
-down_revision: Union[str, None] = "pgvector_enable"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "pgvector_enable"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Tables that hold tenant-scoped data
 RLS_TABLES = [

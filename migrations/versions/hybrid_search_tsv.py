@@ -3,15 +3,16 @@
 Revision ID: hybrid_search_tsv
 Revises: api_key_scopes
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "hybrid_search_tsv"
-down_revision: Union[str, None] = "api_key_scopes"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "api_key_scopes"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
