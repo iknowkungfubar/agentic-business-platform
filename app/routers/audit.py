@@ -11,9 +11,7 @@ from app.database import get_db
 from app.models import AuditEvent
 from app.pagination import PaginationParams, paginate
 from app.routers import get_current_user
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["audit"])
 

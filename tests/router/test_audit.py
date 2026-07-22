@@ -21,6 +21,8 @@ class TestAudit:
         """GET /api/v1/audit/events/999 returns 404."""
         headers = auth_headers(api_client)
         r = api_client.get("/api/v1/audit/events/999", headers=headers)
+        if r.status_code != 404:
+            print(f"Expected 404, got {r.status_code}: {r.json()}")
         assert r.status_code == 404
 
     def test_audit_integrity(self, api_client):

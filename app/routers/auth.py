@@ -17,9 +17,7 @@ from app.auth import (
 from app.database import get_db
 from app.models import APIKey, Organization, User
 from app.routers import get_current_user, require_role
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

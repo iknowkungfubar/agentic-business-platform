@@ -27,6 +27,7 @@ def test_db(tmp_path: pytest.TempPathFactory) -> Generator[None, None, None]:
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
     import app.database as app_db
+    import app.models  # noqa: F401 - ensure models are registered with Base.metadata
 
     app_db.reset_engine()
     app_db.init_db()
