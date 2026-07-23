@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useChatStore';
-import { chatApi, createChatStream, adminApi } from '../api/client';
+import { chatApi, createChatStream } from '../api/client';
 import { Send, Plus } from 'lucide-react';
 
 export function ChatArea() {
@@ -24,7 +24,6 @@ export function ChatArea() {
   const { conversationId: paramId } = useParams();
   const token = useAppStore((s) => s.token);
   const messages = useAppStore((s) => s.messages);
-  const conversations = useAppStore((s) => s.conversations);
   const isStreaming = useAppStore((s) => s.isStreaming);
   const setMessages = useAppStore((s) => s.setMessages);
   const addMessage = useAppStore((s) => s.addMessage);

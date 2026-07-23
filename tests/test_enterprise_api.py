@@ -44,8 +44,6 @@ class TestAPI:
     def test_health_unauthenticated(self, api_client):
         """Health endpoint should be public."""
         r = api_client.get("/health")
-        if r.status_code != 200:
-            print(f"Register failed: {r.status_code} - {r.json()}")
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
 
@@ -60,8 +58,6 @@ class TestAPI:
                 "org_name": "TestOrg",
             },
         )
-        if r.status_code != 200:
-            print(f"Register failed: {r.status_code} - {r.json()}")
         assert r.status_code == 200
         data = r.json()
         assert "access_token" in data

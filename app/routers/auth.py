@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.auth import (
     create_access_token,
@@ -17,7 +18,6 @@ from app.auth import (
 from app.database import get_db
 from app.models import APIKey, Organization, User
 from app.routers import get_current_user, require_role
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
