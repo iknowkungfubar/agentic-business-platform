@@ -50,7 +50,7 @@ fi
 echo "[entrypoint] Running Alembic migrations..."
 python -m alembic upgrade head 2>&1 || {
     echo "[entrypoint] Alembic migration failed, using init_db fallback"
-    python -c "from app.db import init_db; init_db()"
+    python -c "from app.database import init_db; init_db()"
 }
 echo "[entrypoint] Migrations applied"
 
