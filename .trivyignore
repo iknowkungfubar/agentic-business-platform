@@ -1,0 +1,12 @@
+# Trivy ignore file for TurinTech Agentic Business Platform
+# CVE-2024-23342: ecdsa Minerva attack - no fix available upstream
+# This is a transitive dependency via python-jose[cryptography]
+# Track upstream: https://github.com/tlsfuzzer/python-ecdsa/issues/226
+# When a fix is released, remove this entry and update ecdsa version
+CVE-2024-23342
+
+# GHSA-qwww-vcr4-c8h2: React Router RSC Mode CSRF Bypass
+# Fixed in react-router 8.3.0 (major version with breaking changes)
+# Current version 7.18.1 is the latest 7.x
+# Upgrade to react-router v8 when feasible
+GHSA-qwww-vcr4-c8h2
