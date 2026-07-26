@@ -95,7 +95,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           skip-dirs: .venv,node_modules,acp/.venv
-          ignorefile: .trivyignore
+          trivyignores: .trivyignore
       - name: Trivy — SBOM
         uses: aquasecurity/trivy-action@0.35.0
         with:
