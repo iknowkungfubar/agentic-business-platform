@@ -31,7 +31,7 @@ npm run dev
 
 # Production stack (PostgreSQL via Docker)
 docker compose up -d
-# API at http://localhost:8000 | Frontend at http://localhost:3000
+# API at http://localhost:8000 | Frontend runs locally via npm run dev at http://localhost:5173
 
 # With monitoring stack
 docker compose --profile monitoring up -d
