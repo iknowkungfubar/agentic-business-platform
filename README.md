@@ -136,10 +136,10 @@ npm run build   # Production build to web/dist/
 npm run test    # Vitest component tests
 ```
 
-**Stack:** React 19, Zustand, React Router v7, Radix UI, Tailwind CSS v4, Lucide React, i18next + react-i18next  
-**WCAG 2.1 AA:** aria-live regions, aria-labels on all interactive elements, focus management, sufficient color contrast  
-**Real-time:** WebSocket connection manager with auto-reconnect and Redis Pub/Sub  
-**White-labeling:** Dynamic tenant branding (custom domain, logo, colors) via CSS custom properties  
+**Stack:** React 19, Zustand, React Router v7, Radix UI, Tailwind CSS v4, Lucide React, i18next + react-i18next
+**WCAG 2.1 AA:** aria-live regions, aria-labels on all interactive elements, focus management, sufficient color contrast
+**Real-time:** WebSocket connection manager with auto-reconnect and Redis Pub/Sub
+**White-labeling:** Dynamic tenant branding (custom domain, logo, colors) via CSS custom properties
 **Testing:** Vitest + @testing-library/react (3 component tests)
 
 ---
