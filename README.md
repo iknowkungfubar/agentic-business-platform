@@ -31,7 +31,7 @@ npm run dev
 
 # Production stack (PostgreSQL via Docker)
 docker compose up -d
-# API at http://localhost:8000 | Frontend at http://localhost:3000
+# API at http://localhost:8000 | Frontend runs locally via npm run dev at http://localhost:5173
 
 # With monitoring stack
 docker compose --profile monitoring up -d
@@ -136,10 +136,10 @@ npm run build   # Production build to web/dist/
 npm run test    # Vitest component tests
 ```
 
-**Stack:** React 19, Zustand, React Router v7, Radix UI, Tailwind CSS v4, Lucide React, i18next + react-i18next  
-**WCAG 2.1 AA:** aria-live regions, aria-labels on all interactive elements, focus management, sufficient color contrast  
-**Real-time:** WebSocket connection manager with auto-reconnect and Redis Pub/Sub  
-**White-labeling:** Dynamic tenant branding (custom domain, logo, colors) via CSS custom properties  
+**Stack:** React 19, Zustand, React Router v7, Radix UI, Tailwind CSS v4, Lucide React, i18next + react-i18next
+**WCAG 2.1 AA:** aria-live regions, aria-labels on all interactive elements, focus management, sufficient color contrast
+**Real-time:** WebSocket connection manager with auto-reconnect and Redis Pub/Sub
+**White-labeling:** Dynamic tenant branding (custom domain, logo, colors) via CSS custom properties
 **Testing:** Vitest + @testing-library/react (3 component tests)
 
 ---
