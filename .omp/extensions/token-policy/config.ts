@@ -267,11 +267,7 @@ function requireSeparator(_cwd: string): string {
 }
 
 export async function loadConfig(cwd: string): Promise<{ config: PolicyConfig; path?: string }> {
-	const candidates = [
-		resolve(cwd, ".pi", "token-policy.yaml"),
-		resolve(cwd, ".pi", "token-policy.yml"),
-		resolve(cwd, ".pi", "token-efficiency.yaml"),
-	];
+	const candidates = [resolve(cwd, ".omp", "token-policy.yaml")];
 	for (const path of candidates) {
 		try {
 			const text = await readFile(path, "utf8");
